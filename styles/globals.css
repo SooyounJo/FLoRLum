@@ -28,13 +28,11 @@ body {
 html {
   overflow-x: hidden;
   overflow-y: auto;
-  /* 구이 렌즈: 커서(빠른 점) + 꼬리(스무스) → mask 합성
-     외곽 페더를 짧게 → 물방울처럼 경계가 또렷하게 */
-  --spot-r: min(15vmin, 20vw);
-  --spot-r-goo: min(21vmin, 26vw);
-  --spot-hard: 90%;
-  --spot-fa: 92%;
-  --spot-fb: 95.5%;
+  /* 단일 커서 렌즈 */
+  --spot-r: min(20vmin, 26vw);
+  --spot-hard: 86%;
+  --spot-fade-start: 90%;
+  --spot-fade-end: 100%;
   --spot-fast-x: 50vw;
   --spot-fast-y: 50vh;
 }
@@ -113,6 +111,11 @@ body {
   isolation: isolate;
 }
 
+html.hero-revealed .bg-flower {
+  opacity: var(--flowrium-bg-reveal, 1);
+  transition: opacity 0.55s ease-out;
+}
+
 /* 이미지·글라스만 클립 — 디더는 바깥으로 overscan 가능 */
 .bg-flower-clip {
   position: absolute;
@@ -130,16 +133,21 @@ body {
   height: 100%;
   object-fit: cover;
   object-position: center center;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
-/* 블러 레이어: 질감 블러 + 약한 디채도(바깥은 잉크/종이 느낌) — 선명 구역은 위 레이어로 덮음 */
+/* 블러 레이어: SVG 이중 feGaussianBlur 대신 CSS blur — 풀스크린 영상에서 훨씬 가볍게 */
 .bg-flower-video-blur {
-  transform: scale(1.12);
+  transform: translate3d(0, 0, 0) scale(1.12);
   transform-origin: center center;
-  filter: url(#flowrium-blur-soak) grayscale(0.88) contrast(1.1) brightness(0.98);
-  -webkit-filter: url(#flowrium-blur-soak) grayscale(0.88) contrast(1.1) brightness(0.98);
+  filter: blur(18px) contrast(1.08) brightness(0.99);
+  -webkit-filter: blur(18px) contrast(1.08) brightness(0.99);
   opacity: var(--flowrium-blur-op, 1);
-  transition: opacity 0.22s ease-out;
+  transition:
+    opacity 0.22s ease-out,
+    filter 0.45s ease-out,
+    -webkit-filter 0.45s ease-out;
 }
 
 /* 블러·디더 위 배경만 리퀴드 글라스 느낌 — 커서 선명 원(마스크 안)에는 적용 안 함 */
@@ -158,92 +166,65 @@ body {
 
 /* 중심 투명(구멍) → 바깥만 글라스: 각 구멍을 multiply 로 겹침 */
 .bg-glass-outer-masked {
-  mask-image:
-    radial-gradient(
-      circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
-      rgba(0, 0, 0, 0) 0%,
-      rgba(0, 0, 0, 0) var(--spot-hard),
-      rgba(255, 255, 255, 0.4) var(--spot-fa),
-      rgba(255, 255, 255, 0.9) var(--spot-fb),
-      #fff 100%
-    ),
-    radial-gradient(
-      circle var(--spot-r-goo) at var(--dither-x, 50vw) var(--dither-y, 50vh),
-      rgba(0, 0, 0, 0) 0%,
-      rgba(0, 0, 0, 0) var(--spot-hard),
-      rgba(255, 255, 255, 0.4) var(--spot-fa),
-      rgba(255, 255, 255, 0.9) var(--spot-fb),
-      #fff 100%
-    );
-  mask-composite: multiply;
-  -webkit-mask-image:
-    radial-gradient(
-      circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
-      rgba(0, 0, 0, 0) 0%,
-      rgba(0, 0, 0, 0) var(--spot-hard),
-      rgba(255, 255, 255, 0.4) var(--spot-fa),
-      rgba(255, 255, 255, 0.9) var(--spot-fb),
-      #fff 100%
-    ),
-    radial-gradient(
-      circle var(--spot-r-goo) at var(--dither-x, 50vw) var(--dither-y, 50vh),
-      rgba(0, 0, 0, 0) 0%,
-      rgba(0, 0, 0, 0) var(--spot-hard),
-      rgba(255, 255, 255, 0.4) var(--spot-fa),
-      rgba(255, 255, 255, 0.9) var(--spot-fb),
-      #fff 100%
-    );
-  -webkit-mask-composite: multiply;
+  mask-image: radial-gradient(
+    circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0) var(--spot-hard),
+    rgba(255, 255, 255, 0.45) var(--spot-fade-start),
+    rgba(255, 255, 255, 1) var(--spot-fade-end),
+    #fff 100%
+  );
+  -webkit-mask-image: radial-gradient(
+    circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0) var(--spot-hard),
+    rgba(255, 255, 255, 0.45) var(--spot-fade-start),
+    rgba(255, 255, 255, 1) var(--spot-fade-end),
+    #fff 100%
+  );
   mask-mode: alpha;
 }
 
 /* 선명 이미지: 커서 + 꼬리 — mask add 로 메타볼처럼 이어짐 */
 .bg-flower-video-sharp {
   z-index: 5;
-  transform: scale(1.002);
+  transform: translate3d(0, 0, 0) scale(1.002);
   transform-origin: center center;
-  mask-image:
-    radial-gradient(
-      circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
-      #fff 0%,
-      #fff var(--spot-hard),
-      rgba(255, 255, 255, 0.62) var(--spot-fa),
-      rgba(255, 255, 255, 0.18) var(--spot-fb),
-      rgba(255, 255, 255, 0) 100%
-    ),
-    radial-gradient(
-      circle var(--spot-r-goo) at var(--dither-x, 50vw) var(--dither-y, 50vh),
-      #fff 0%,
-      #fff var(--spot-hard),
-      rgba(255, 255, 255, 0.62) var(--spot-fa),
-      rgba(255, 255, 255, 0.18) var(--spot-fb),
-      rgba(255, 255, 255, 0) 100%
-    );
-  mask-composite: add;
-  -webkit-mask-image:
-    radial-gradient(
-      circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
-      #fff 0%,
-      #fff var(--spot-hard),
-      rgba(255, 255, 255, 0.62) var(--spot-fa),
-      rgba(255, 255, 255, 0.18) var(--spot-fb),
-      rgba(255, 255, 255, 0) 100%
-    ),
-    radial-gradient(
-      circle var(--spot-r-goo) at var(--dither-x, 50vw) var(--dither-y, 50vh),
-      #fff 0%,
-      #fff var(--spot-hard),
-      rgba(255, 255, 255, 0.62) var(--spot-fa),
-      rgba(255, 255, 255, 0.18) var(--spot-fb),
-      rgba(255, 255, 255, 0) 100%
-    );
-  -webkit-mask-composite: plus-lighter;
+  mask-image: radial-gradient(
+    circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
+    #fff 0%,
+    #fff var(--spot-hard),
+    rgba(255, 255, 255, 0.45) var(--spot-fade-start),
+    rgba(255, 255, 255, 0) var(--spot-fade-end),
+    rgba(255, 255, 255, 0) 100%
+  );
+  -webkit-mask-image: radial-gradient(
+    circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
+    #fff 0%,
+    #fff var(--spot-hard),
+    rgba(255, 255, 255, 0.45) var(--spot-fade-start),
+    rgba(255, 255, 255, 0) var(--spot-fade-end),
+    rgba(255, 255, 255, 0) 100%
+  );
   mask-mode: alpha;
-  /* 도넛 레이어 대신: 마스크 합쳐진 실루엣 외곽에만 그림자 → 겹칠 때 링 이중 없음 */
-  filter: drop-shadow(0 0 1.5px rgba(255, 252, 245, 0.55))
-    drop-shadow(0 0 0.5px rgba(40, 35, 30, 0.22))
-    drop-shadow(0 0 18px rgba(255, 238, 200, 0.16));
+  filter: drop-shadow(0 0 2px rgba(255, 252, 245, 0.45));
   transition: opacity 0.45s ease;
+}
+
+/* 두 번째 레이어: turn plenet.mp4 — 레이어 투명도 낮을 땐 JS에서 pause */
+.bg-flower-planet-plate {
+  pointer-events: none;
+}
+
+.bg-flower-planet-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* 배경 미세 할프톤 — 스포트라이트 밖에서만 */
@@ -321,42 +302,22 @@ body {
 
 /* 선명 원과 동일 스톱 — 디더는 렌즈 밖에서만 */
 .bg-dither-masked {
-  mask-image:
-    radial-gradient(
-      circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
-      rgba(0, 0, 0, 0) 0%,
-      rgba(0, 0, 0, 0) var(--spot-hard),
-      rgba(255, 255, 255, 0.38) var(--spot-fa),
-      rgba(255, 255, 255, 0.88) var(--spot-fb),
-      #fff 100%
-    ),
-    radial-gradient(
-      circle var(--spot-r-goo) at var(--dither-x, 50vw) var(--dither-y, 50vh),
-      rgba(0, 0, 0, 0) 0%,
-      rgba(0, 0, 0, 0) var(--spot-hard),
-      rgba(255, 255, 255, 0.38) var(--spot-fa),
-      rgba(255, 255, 255, 0.88) var(--spot-fb),
-      #fff 100%
-    );
-  mask-composite: add;
-  -webkit-mask-image:
-    radial-gradient(
-      circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
-      rgba(0, 0, 0, 0) 0%,
-      rgba(0, 0, 0, 0) var(--spot-hard),
-      rgba(255, 255, 255, 0.38) var(--spot-fa),
-      rgba(255, 255, 255, 0.88) var(--spot-fb),
-      #fff 100%
-    ),
-    radial-gradient(
-      circle var(--spot-r-goo) at var(--dither-x, 50vw) var(--dither-y, 50vh),
-      rgba(0, 0, 0, 0) 0%,
-      rgba(0, 0, 0, 0) var(--spot-hard),
-      rgba(255, 255, 255, 0.38) var(--spot-fa),
-      rgba(255, 255, 255, 0.88) var(--spot-fb),
-      #fff 100%
-    );
-  -webkit-mask-composite: plus-lighter;
+  mask-image: radial-gradient(
+    circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0) var(--spot-hard),
+    rgba(255, 255, 255, 0.45) var(--spot-fade-start),
+    rgba(255, 255, 255, 1) var(--spot-fade-end),
+    #fff 100%
+  );
+  -webkit-mask-image: radial-gradient(
+    circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0) var(--spot-hard),
+    rgba(255, 255, 255, 0.45) var(--spot-fade-start),
+    rgba(255, 255, 255, 1) var(--spot-fade-end),
+    #fff 100%
+  );
   mask-mode: alpha;
 }
 
@@ -368,6 +329,7 @@ body {
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  transition: opacity 0.8s ease-out;
 }
 
 .title-overlay-inner {
@@ -381,6 +343,450 @@ body {
   min-height: 100%;
   transform: translateY(var(--title-stack-lift, 0px));
   will-change: transform;
+}
+
+/* 두 번째 화면용 2D 오버레이 — 배경/타이틀 위, 인트로·스크롤 힌트 아래 */
+.second-scene-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 18;
+  pointer-events: none;
+  opacity: var(--flowrium-second-op, 0);
+  transition: opacity 0.85s ease-out;
+}
+
+/* 워드마크는 오버레이(뷰포트) 기준 — 스택 자식이면 absolute 기준이 잘못 잡혀 레이아웃이 깨짐 */
+.second-scene-stack {
+  position: absolute;
+  left: 50%;
+  top: clamp(69%, 71vh, 79%);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  width: max-content;
+  max-width: min(92vw, 520px);
+  gap: 0.72rem;
+  margin: 0;
+  padding: 0 12px;
+  box-sizing: border-box;
+  opacity: calc(1 - var(--flowrium-cards-op, 0) * 0.88);
+  transition: opacity 0.55s ease-out;
+}
+
+.second-scene-wordmark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(
+    -50%,
+    calc(-50% - var(--flowrium-third-lift, 0px))
+  );
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2rem, 5.9vw, 5.4rem);
+  line-height: 1.08;
+  letter-spacing: 0.02em;
+  text-align: center;
+  width: max-content;
+  max-width: min(96vw, 900px);
+  padding: 0 12px;
+  box-sizing: border-box;
+  text-shadow:
+    0 1.28px 54px rgba(0, 0, 0, 0.23),
+    0 0 1px rgba(0, 0, 0, 0.9),
+    0 2px 16px rgba(0, 0, 0, 0.45),
+    0 0 28px rgba(255, 255, 255, 0.25);
+  transition:
+    top 0.7s cubic-bezier(0.33, 1, 0.68, 1),
+    transform 0.7s cubic-bezier(0.33, 1, 0.68, 1),
+    font-size 0.65s ease;
+}
+
+/* State 2 — 카드 행: FLOWRIUM 헤더 상단 고정, 워드마크가 카드·배경 위에 보이도록 */
+html.flowrium-cards-state-2 .second-scene-overlay {
+  z-index: 25;
+}
+
+html.flowrium-cards-state-2 .second-scene-wordmark {
+  top: max(48px, env(safe-area-inset-top, 0px), 9vh);
+  font-size: clamp(1.85rem, 5vw, 4.25rem);
+  transform: translate(-50%, 0) translateY(calc(-1 * var(--flowrium-third-lift, 0px)));
+  text-shadow:
+    0 1.28px 54px rgba(0, 0, 0, 0.23),
+    0 0 1px rgba(0, 0, 0, 0.85),
+    0 2px 20px rgba(0, 0, 0, 0.4),
+    0 0 32px rgba(255, 255, 255, 0.28);
+}
+
+.second-scene-dot {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.18),
+    0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.second-scene-label {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: clamp(0.74rem, 1.18vw, 1.08rem);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 400;
+  line-height: 1.35;
+  text-align: center;
+  width: 100%;
+  text-shadow:
+    0 0 1px rgba(0, 0, 0, 0.85),
+    0 1px 12px rgba(0, 0, 0, 0.35);
+}
+
+.second-scene-label-muted {
+  opacity: 0.88;
+}
+
+/* Figma 797:727 — 세 번째 구간: 라이트 그레이 베일 + 글래스 카드 그리드 */
+.third-scene-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  pointer-events: none;
+  opacity: var(--flowrium-cards-op, 0);
+  transition: opacity 0.75s ease-out;
+  overflow: hidden;
+}
+
+.third-scene-veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(228, 228, 228, 0.22) 0%,
+    rgba(228, 228, 228, 0.08) 42%,
+    rgba(180, 180, 180, 0.12) 100%
+  );
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.third-scene-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: min(1960px, 98vw);
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: clamp(7.5rem, 18vh, 11rem) clamp(14px, 2vw, 28px) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  transition:
+    padding 0.7s cubic-bezier(0.33, 1, 0.68, 1),
+    justify-content 0.65s ease;
+}
+
+.third-scene-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(14px, 1.85vw, 26px);
+  width: 100%;
+  max-width: min(1240px, 100%);
+  align-items: start;
+  justify-items: center;
+}
+
+/* State 2: 상단은 FLOWRIUM 전용 영역, 카드는 아래쪽 행으로 정리 */
+html.flowrium-cards-state-2 .third-scene-inner {
+  justify-content: flex-end;
+  /* FLOWRIUM 아래 여백 + 카드 상단이 지향(mockup)에 가깝게 */
+  padding-top: clamp(5.25rem, 12vh, 8.25rem);
+  padding-bottom: 0;
+}
+
+html.flowrium-cards-state-2 .third-scene-cards {
+  margin-top: auto;
+  max-width: min(1180px, 100%);
+}
+
+html.flowrium-cards-state-2 .third-scene-veil {
+  background: linear-gradient(
+    180deg,
+    rgba(248, 248, 246, 0.06) 0%,
+    rgba(228, 228, 228, 0.06) 28%,
+    rgba(200, 200, 200, 0.1) 72%,
+    rgba(180, 180, 180, 0.14) 100%
+  );
+}
+
+@media (max-width: 900px) {
+  .third-scene-cards {
+    grid-template-columns: 1fr;
+    max-width: min(440px, 100%);
+  }
+
+  .third-scene-inner {
+    padding-top: clamp(8.5rem, 22vh, 12rem);
+  }
+
+  html.flowrium-cards-state-2 .second-scene-wordmark {
+    top: max(40px, env(safe-area-inset-top, 0px), 7vh);
+    font-size: clamp(1.65rem, 6vw, 3.25rem);
+  }
+
+  html.flowrium-cards-state-2 .third-scene-inner {
+    padding-top: clamp(7rem, 18vh, 10rem);
+  }
+
+}
+
+/* 글래스 카드 — 본문 높이는 aspect+max-height 유지, padding-bottom만으로 하단 연장(위 배치 불변) */
+.third-scene-card {
+  --third-scene-card-pad-bottom: clamp(11vh, 10vw, 20vh);
+  position: relative;
+  box-sizing: content-box;
+  width: 100%;
+  max-width: min(372px, 29.5vw);
+  aspect-ratio: 598 / 850;
+  max-height: min(57vh, 518px);
+  height: auto;
+  padding: 0;
+  padding-bottom: var(--third-scene-card-pad-bottom);
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow:
+    0 20px 56px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 900px) {
+  .third-scene-card {
+    --third-scene-card-pad-bottom: clamp(10vh, 12vw, 18vh);
+  }
+}
+
+.third-scene-card-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  backdrop-filter: blur(52px) saturate(1.52) brightness(1.05);
+  -webkit-backdrop-filter: blur(52px) saturate(1.52) brightness(1.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.62);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.82),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 -28px 48px rgba(0, 0, 0, 0.05);
+  pointer-events: none;
+}
+
+/* 보조 백드롭 블러 — 배경만 더 부드럽게(타이포·이미지는 상위 z-index로 선명 유지) */
+.third-scene-card-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* 글래스: 살짝 린(밝은 필) + 본체 — 배경이 비치도록 투명도 유지 */
+.third-scene-card:nth-child(1) .third-scene-card-glass {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.1) 38%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(217, 217, 217, 0.22) 77.88%, rgba(72, 72, 72, 0.2) 100%),
+    rgba(255, 255, 255, 0.06);
+}
+
+.third-scene-card:nth-child(2) .third-scene-card-glass,
+.third-scene-card:nth-child(3) .third-scene-card-glass {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.08) 40%, rgba(255, 255, 255, 0) 54%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(217, 217, 217, 0.18) 77.88%, rgba(72, 72, 72, 0.18) 100%),
+    rgba(255, 255, 255, 0.05);
+}
+
+/* 상단 타이틀 — 3D 이미지(scale)·글래스보다 항상 위에, 잘림/가림 방지 */
+.third-scene-card-title {
+  position: absolute;
+  z-index: 2;
+  left: clamp(18px, 6%, 36px);
+  top: clamp(16px, 4%, 32px);
+  margin: 0;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 100;
+  font-size: clamp(1.4rem, 3.8vw, 3.35rem);
+  line-height: calc(115 / 96);
+  letter-spacing: 0;
+  color: #ffffff;
+  text-shadow: 0 4px 35px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.third-scene-card-title:not(.third-scene-card-title-br) {
+  z-index: 6;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.45),
+    0 4px 28px rgba(0, 0, 0, 0.35),
+    0 0 24px rgba(0, 0, 0, 0.2);
+}
+
+.third-scene-card-title-br {
+  z-index: 4;
+  left: auto;
+  top: auto;
+  right: clamp(18px, 6%, 36px);
+  bottom: calc(var(--third-scene-card-pad-bottom, 0px) + clamp(72px, 11vh, 130px));
+  text-shadow: 0 4px 35px rgba(0, 0, 0, 0.25);
+}
+
+/* CORE 하단 라벨만 shadow 34px (Figma) */
+.third-scene-card:nth-child(3) .third-scene-card-title-br {
+  text-shadow: 0 4px 34px rgba(0, 0, 0, 0.25);
+}
+
+/* 카드 중앙 이미지 — 부유(상하) 루프. transform은 keyframes에서 일괄 처리 */
+@keyframes third-scene-media-float {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-12px);
+  }
+}
+
+/* 이미지: 본문 높이 기준으로 약간 아래로 치우쳐 상단 타이틀 영역 비움(지향 레이아웃) */
+.third-scene-card-media {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: calc((100% - var(--third-scene-card-pad-bottom, 0px)) / 2 + min(5.5%, 26px));
+  width: min(88%, 318px);
+  border-radius: 0;
+  overflow: visible;
+  animation: third-scene-media-float 4.2s ease-in-out infinite;
+}
+
+.third-scene-card:nth-child(1) .third-scene-card-media {
+  width: min(98%, 398px);
+  top: calc((100% - var(--third-scene-card-pad-bottom, 0px)) / 2 + min(7%, 32px));
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.38));
+  animation-duration: 4.6s;
+  animation-delay: 0s;
+}
+
+.third-scene-card:nth-child(2) .third-scene-card-media {
+  width: min(92%, 352px);
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.34));
+  animation-duration: 3.7s;
+  animation-delay: -1.35s;
+}
+
+.third-scene-card:nth-child(3) .third-scene-card-media {
+  width: min(96%, 388px);
+  top: calc((100% - var(--third-scene-card-pad-bottom, 0px)) / 2 + min(6.5%, 30px));
+  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.45));
+  animation-duration: 4.35s;
+  animation-delay: -2.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .third-scene-card-media {
+    animation: none;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/*
+ * BLOOM·CORE: 넓게 쓰되 확대 기준점을 아래쪽으로 두어 위로 “날아가” 타이틀을 덮지 않게
+ */
+.third-scene-card:nth-child(1) .third-scene-card-img,
+.third-scene-card:nth-child(3) .third-scene-card-img {
+  transform: scale(1.78);
+  transform-origin: 50% 68%;
+}
+
+.third-scene-card-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  object-position: center center;
+}
+
+.third-scene-card-copy {
+  position: absolute;
+  z-index: 5;
+  left: clamp(18px, 6%, 32px);
+  right: clamp(18px, 6%, 32px);
+  bottom: calc(var(--third-scene-card-pad-bottom, 0px) + clamp(14px, 4.5%, 28px));
+  pointer-events: none;
+}
+
+/* 본문: 32px / 38px, shadow 0 4px 14.9px */
+.third-scene-card-head {
+  margin: 0 0 0.3em;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 100;
+  font-size: clamp(0.85rem, 1.85vw, 1.35rem);
+  line-height: calc(38 / 32);
+  color: #ffffff;
+  text-shadow: 0 4px 14.9px rgba(0, 0, 0, 0.21);
+}
+
+.third-scene-card-body {
+  margin: 0;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 100;
+  font-size: clamp(0.8rem, 1.7vw, 1.25rem);
+  line-height: calc(38 / 32);
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 4px 14.9px rgba(0, 0, 0, 0.21);
+}
+
+html.flowrium-third-atmosphere.hero-revealed .bg-flower .bg-dither.bg-dither-viewport {
+  opacity: 0.42 !important;
+}
+
+html.flowrium-third-atmosphere.hero-revealed .bg-flower .bg-halftone-coarse.bg-dither-viewport {
+  opacity: 0.64 !important;
+}
+
+/* 두 번째 화면 구간: 백그라운드 디더·할프톤 살짝 강조 + 블러 플레이트에 가벼운 추가 블러 */
+html.flowrium-second-atmosphere.hero-revealed .bg-flower .bg-dither.bg-dither-viewport {
+  opacity: 0.46 !important;
+  transition: opacity 0.65s ease;
+}
+
+html.flowrium-second-atmosphere.hero-revealed .bg-flower .bg-halftone-coarse.bg-dither-viewport {
+  opacity: 0.68 !important;
+  transition: opacity 0.65s ease;
+}
+
+html.flowrium-second-atmosphere.hero-revealed .bg-flower-video-blur {
+  filter: blur(22px) contrast(1.06) brightness(0.99);
+  -webkit-filter: blur(22px) contrast(1.06) brightness(0.99);
+}
+
+/* 두 번째 구간: 글라스 backdrop 합성 비용 줄임 */
+html.flowrium-second-atmosphere.hero-revealed .bg-glass-field {
+  backdrop-filter: saturate(1.12);
+  -webkit-backdrop-filter: saturate(1.12);
+  box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.04);
 }
 
 /* 타이포 디더: 글자 박스가 아니라 화면 전체(렌즈 마스크는 동일) */
@@ -434,6 +840,22 @@ html.hero-revealed .bg-flower .bg-flower-video-blur {
     filter 0.35s ease-out;
 }
 
+html.hero-revealed .bg-flower .bg-flower-video-sharp-main {
+  opacity: calc(1 - var(--flowrium-next-op, 0));
+  transition: opacity 0.82s ease-out;
+}
+
+html.hero-revealed .bg-flower .bg-flower-video-sharp-next {
+  opacity: calc(var(--flowrium-next-op, 0) * (1 - var(--flowrium-move-op, 0)));
+  transition: opacity 0.82s ease-out;
+}
+
+html.hero-revealed .bg-flower .bg-flower-video-sharp-third {
+  z-index: 6;
+  opacity: calc(var(--flowrium-next-op, 0) * var(--flowrium-move-op, 0));
+  transition: opacity 0.82s ease-out;
+}
+
 html.hero-revealed .bg-flower .bg-glass-field {
   opacity: var(--flowrium-glass-op, 1);
   transition: opacity 0.24s ease-out;
@@ -446,11 +868,14 @@ html.hero-revealed .bg-flower .bg-glass-field {
   top: 50%;
   z-index: 4;
   margin: 0;
+  width: min(1974px, 96vw);
+  height: min(555px, 78vw);
   transform: translate(-50%, -50%);
-  font-size: clamp(2.75rem, 12vw, 7rem);
+  font-size: clamp(7.8rem, 28vw, 384px);
   font-weight: 400;
+  line-height: min(555px, 78vw);
   letter-spacing: 0.04em;
-  color: #0a0a0a;
+  color: #ffffff;
   text-align: center;
   pointer-events: none;
   will-change: filter, opacity;
@@ -481,52 +906,63 @@ html.hero-revealed .hero-intro-title {
     visibility 0s linear 0.4s;
 }
 
-html:not(.hero-revealed) .title-letters-row {
+html:not(.hero-revealed) .flowrium-wordmark {
   opacity: 0;
 }
 
-html.hero-revealed .title-letters-row {
+html.hero-revealed .flowrium-wordmark {
   opacity: 1;
   transition: opacity 0.72s ease 0.1s;
 }
 
-.metallic-title-inner:has(.title-letters-row) {
+.metallic-title-inner:has(.flowrium-wordmark) {
   width: min(98vw, 100%);
   height: min(52vh, 560px);
   max-height: 88vh;
 }
 
-.title-letters-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(0.02rem, 0.45vw, 0.35rem);
-  width: 100%;
-  height: 100%;
-  position: relative;
+.flowrium-wordmark {
+  position: absolute;
+  width: min(1974px, 96vw);
+  height: min(555px, 78vw);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, calc(-50% + var(--flowrium-wordmark-shift-y, 0px)));
   z-index: 1;
+  opacity: 0;
 }
 
-.title-letter {
-  --letter-i: 0;
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: 12.5vw;
+.flowrium-wordmark-canvas {
+  position: relative;
+  width: 100%;
   height: 100%;
+}
+
+.flowrium-wordmark-metallic {
+  opacity: calc(1 - var(--flowrium-wordmark-white, 0));
+  transition: opacity 0.45s ease-out;
+}
+
+.flowrium-wordmark-solid {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  transform-origin: 50% 88%;
-  will-change: transform;
-}
-
-.letter-canvas-wrap {
-  position: relative;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1;
-  max-height: min(50vh, 520px);
-  will-change: transform;
+  margin: 0;
+  padding: 0;
+  color: #ffffff;
+  font-weight: 400;
+  font-size: clamp(3.5rem, 11vw, 8rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  opacity: var(--flowrium-wordmark-white, 0);
+  pointer-events: none;
+  transition: opacity 0.45s ease-out;
+  text-shadow:
+    0 0 12px rgba(255, 255, 255, 0.35),
+    0 2px 20px rgba(0, 0, 0, 0.3);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -539,7 +975,6 @@ html.hero-revealed .title-letters-row {
 
 /* 스크롤 끝: 렌즈 마스크 제거 → 전 화면 선명 + 디더가 PNG가 아닌 타일로 전역 덮음(직사각형 밴드 방지) */
 html.flowrium-scroll-end .bg-flower-video-sharp {
-  opacity: 1;
   mask-image: none !important;
   -webkit-mask-image: none !important;
   filter: none;
@@ -547,6 +982,18 @@ html.flowrium-scroll-end .bg-flower-video-sharp {
     opacity 0.45s ease,
     mask 0.5s ease,
     -webkit-mask 0.5s ease;
+}
+
+html.flowrium-scroll-end .bg-flower-video-sharp-main {
+  opacity: calc(1 - var(--flowrium-next-op, 0));
+}
+
+html.flowrium-scroll-end .bg-flower-video-sharp-next {
+  opacity: calc(var(--flowrium-next-op, 0) * (1 - var(--flowrium-move-op, 0)));
+}
+
+html.flowrium-scroll-end .bg-flower-video-sharp-third {
+  opacity: calc(var(--flowrium-next-op, 0) * var(--flowrium-move-op, 0));
 }
 
 html.flowrium-scroll-end .bg-dither.bg-dither-masked,
@@ -571,6 +1018,47 @@ html.flowrium-scroll-end .title-halftone-coarse.bg-dither-masked {
   -webkit-mask-image: none !important;
 }
 
+/* 플래닛(두 번째) 화면~: 커서 렌즈 마스크 해제 — 구멍이 아닌 풀프레임 배경 */
+html.flowrium-bg-no-lens.hero-revealed .bg-flower-video-sharp {
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+  filter: none;
+  transition:
+    opacity 0.45s ease,
+    mask 0.55s ease,
+    -webkit-mask 0.55s ease,
+    filter 0.45s ease;
+}
+
+html.flowrium-bg-no-lens.hero-revealed .bg-dither.bg-dither-masked,
+html.flowrium-bg-no-lens.hero-revealed .bg-halftone-coarse.bg-dither-masked {
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+  mask: none !important;
+  -webkit-mask: none !important;
+}
+
+/* 마스크 없을 때 전면 글라스를 켜면 화면 전체가 흐려짐 — 끔 */
+html.flowrium-bg-no-lens.hero-revealed .bg-glass-field.bg-glass-outer-masked {
+  opacity: 0 !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
+
+html.flowrium-bg-no-lens.hero-revealed .title-dither.bg-dither-masked,
+html.flowrium-bg-no-lens.hero-revealed .title-halftone-coarse.bg-dither-masked {
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
+
+html.flowrium-bg-no-lens .second-scene-label {
+  color: rgba(255, 255, 255, 0.98);
+  text-shadow:
+    0 0 1px rgba(0, 0, 0, 0.9),
+    0 2px 18px rgba(0, 0, 0, 0.55),
+    0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
 /* react-bits MetallicPaint */
 .paint-container {
   display: block;
@@ -581,9 +1069,9 @@ html.flowrium-scroll-end .title-halftone-coarse.bg-dither-masked {
 
 .metallic-title-inner {
   position: relative;
-  width: min(98vw, 124200px);
-  height: min(88vh, 51300px);
-  max-height: 51300px;
+  width: min(1974px, 96vw);
+  height: min(555px, 78vw);
+  max-height: 555px;
 }
 
 .title-scatter-wrap {
@@ -637,5 +1125,279 @@ html.flowrium-scroll-end .title-halftone-coarse.bg-dither-masked {
   mix-blend-mode: exclusion;
   opacity: 0.78;
   filter: blur(0.5px);
+}
+
+/* BLOOM 카드(첫 카드만 클릭 가능 — 나머지 오버레이는 스크롤 통과) */
+.third-scene-card--bloom {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.third-scene-card--bloom:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.92);
+  outline-offset: 4px;
+}
+
+/* BLOOM → Figma 797:735 전환: 하단에서 올라온 뒤 다시 내려가는 글래스 카드 3장 */
+.bloom-glass-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bloom-glass-transition-card {
+  position: absolute;
+  bottom: 6%;
+  width: min(28vw, 200px);
+  height: min(58vh, 520px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: linear-gradient(
+    168deg,
+    rgba(255, 255, 255, 0.38) 0%,
+    rgba(217, 217, 217, 0.24) 42%,
+    rgba(100, 100, 100, 0.2) 100%
+  );
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow:
+    0 24px 56px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.52);
+  transform: translateY(calc(100vh + 120px));
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.bloom-glass-transition-card:nth-child(1) {
+  left: max(12px, 7vw);
+  animation: bloomGlassTransCard 2.04s cubic-bezier(0.42, 0, 0.18, 1) forwards;
+}
+
+.bloom-glass-transition-card:nth-child(2) {
+  left: 36%;
+  animation: bloomGlassTransCard 2.04s cubic-bezier(0.42, 0, 0.18, 1) 0.12s forwards;
+}
+
+.bloom-glass-transition-card:nth-child(3) {
+  left: auto;
+  right: max(12px, 7vw);
+  animation: bloomGlassTransCard 2.04s cubic-bezier(0.42, 0, 0.18, 1) 0.24s forwards;
+}
+
+@keyframes bloomGlassTransCard {
+  0% {
+    transform: translateY(calc(100vh + 120px));
+    opacity: 0;
+  }
+
+  14% {
+    opacity: 1;
+  }
+
+  40% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  58% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(calc(100vh + 120px));
+    opacity: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .bloom-glass-transition-card {
+    width: min(27vw, 92px);
+    height: 46vh;
+    border-radius: 20px;
+  }
+
+  .bloom-glass-transition-card:nth-child(1) {
+    left: 3%;
+  }
+
+  .bloom-glass-transition-card:nth-child(2) {
+    left: 36.5%;
+  }
+
+  .bloom-glass-transition-card:nth-child(3) {
+    right: 3%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bloom-glass-transition-card {
+    animation: none;
+    opacity: 0;
+    transform: translateY(100vh);
+  }
+}
+
+/* Figma 797:735 Bloom 상세 */
+.bloom-detail-root {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: #e4e4e4;
+  overflow: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  pointer-events: auto;
+  min-height: 100dvh;
+}
+
+.bloom-detail-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bloom-detail-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 38%;
+  filter: blur(8px) brightness(1.03);
+  transform: scale(1.06);
+}
+
+.bloom-detail-back {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
+  z-index: 4;
+  padding: 6px;
+  margin: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.bloom-detail-back:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}
+
+.bloom-detail-back img {
+  display: block;
+  width: min(44px, 11vw);
+  height: auto;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.28));
+}
+
+.bloom-detail-title {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  margin: 0;
+  font-weight: 400;
+  font-size: clamp(2rem, 5.6vw, 4rem);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-shadow: 0 1.28px 54px rgba(0, 0, 0, 0.23);
+  pointer-events: none;
+}
+
+.bloom-detail-cards {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(12px, 2.2vw, 26px);
+  padding: clamp(38vh, 46vh, 50vh) clamp(16px, 3vw, 28px)
+    max(28px, env(safe-area-inset-bottom, 0px));
+  max-width: 1080px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+@media (max-width: 840px) {
+  .bloom-detail-cards {
+    grid-template-columns: 1fr;
+    padding-top: clamp(32vh, 40vh, 44vh);
+    max-width: 440px;
+  }
+}
+
+.bloom-detail-card {
+  position: relative;
+  min-height: clamp(260px, 36vw, 320px);
+  border-radius: 30px;
+  padding: clamp(0.85rem, 1.8vw, 1.15rem);
+  overflow: hidden;
+}
+
+.bloom-detail-card-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(217, 217, 217, 0.42);
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.bloom-detail-card:nth-child(1) .bloom-detail-card-glass {
+  background: rgba(217, 217, 217, 0.48);
+}
+
+.bloom-detail-card-label {
+  position: relative;
+  z-index: 2;
+  margin: 0 0 clamp(0.85rem, 1.8vw, 1.15rem);
+  font-family: 'Pretendard',
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    sans-serif;
+  font-weight: 400;
+  font-size: clamp(1.1rem, 2.6vw, 2.35rem);
+  line-height: 1.18;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.98);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.22);
+}
+
+.bloom-detail-card-media {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.25rem;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1.05;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.38);
+}
+
+.bloom-detail-card:nth-child(2) .bloom-detail-card-media {
+  box-shadow: 0 4px 7.2px rgba(0, 0, 0, 0.48);
+}
+
+.bloom-detail-card:nth-child(3) .bloom-detail-card-media {
+  box-shadow: 0 4px 12.3px rgba(0, 0, 0, 0.44);
+}
+
+.bloom-detail-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
 }
 
