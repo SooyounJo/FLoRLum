@@ -1381,8 +1381,9 @@ html.flowrium-bg-no-lens .second-scene-label {
   height: 100%;
   object-fit: cover;
   object-position: center 38%;
-  filter: blur(10px) brightness(1.03);
-  transform: scale(1.03);
+  /* Bloom 전환 배경 블러 제거 */
+  filter: blur(0) brightness(1.03);
+  transform: scale(1);
   opacity: 0;
   animation: bloomTransBg 0.7s ease-out forwards;
 }
@@ -1489,11 +1490,21 @@ html.flowrium-bloom-transition .third-scene-overlay {
   position: fixed;
   inset: 0;
   z-index: 55;
-  background: #e4e4e4;
+  /* 모달 자체는 더 투명하게 — 배경 비디오가 살아있게 */
+  background: transparent;
   /* 이 페이지는 스크롤 금지 */
   overflow: hidden;
   pointer-events: auto;
   min-height: 100dvh;
+}
+
+.bloom-detail-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: rgba(228, 228, 228, 0.06);
 }
 
 .bloom-detail-bg {
@@ -1510,8 +1521,9 @@ html.flowrium-bloom-transition .third-scene-overlay {
   height: 100%;
   object-fit: cover;
   object-position: center 38%;
-  filter: blur(8px) brightness(1.03);
-  transform: scale(1.06);
+  /* Bloom 배경 블러 제거 */
+  filter: blur(0) brightness(1.03);
+  transform: scale(1);
 }
 
 .bloom-detail-back {
@@ -1519,7 +1531,9 @@ html.flowrium-bloom-transition .third-scene-overlay {
   top: max(12px, env(safe-area-inset-top, 0px));
   left: max(12px, env(safe-area-inset-left, 0px));
   z-index: 4;
-  padding: 6px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   margin: 0;
   background: transparent;
   border: none;
@@ -1527,19 +1541,16 @@ html.flowrium-bloom-transition .third-scene-overlay {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 28px;
+  line-height: 1;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.3);
 }
 
 .bloom-detail-back:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.85);
   outline-offset: 2px;
-}
-
-.bloom-detail-back img {
-  display: block;
-  width: min(44px, 11vw);
-  height: auto;
-  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.28));
 }
 
 .bloom-detail-title {
@@ -1567,7 +1578,7 @@ html.flowrium-bloom-transition .third-scene-overlay {
   left: 50%;
   bottom: max(24px, env(safe-area-inset-bottom, 0px), 6vh);
   transform: translateX(-50%);
-  width: min(1020px, 96vw);
+  width: min(1240px, 96vw);
   padding: 0 clamp(16px, 3vw, 28px);
   box-sizing: border-box;
 }
@@ -1582,11 +1593,40 @@ html.flowrium-bloom-transition .third-scene-overlay {
 
 .bloom-detail-card {
   position: relative;
-  /* 상하 비율을 조금 좁게(더 낮은 카드) */
-  height: clamp(220px, 19vw, 300px);
+  /* 가로가 훨씬 긴 컨테이너 비율 */
+  height: clamp(150px, 13.2vw, 220px);
   border-radius: 30px;
-  padding: clamp(0.9rem, 2vw, 1.2rem);
+  padding: 0;
   overflow: hidden;
+}
+
+.bloom-detail-card-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: inherit;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.bloom-detail-card-link:hover {
+  transform: translateY(-10px);
+  filter: brightness(1.02);
+}
+
+.bloom-detail-card-link:active {
+  transform: translateY(-6px) scale(0.99);
+}
+
+.bloom-detail-card-link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 4px;
 }
 
 .bloom-detail-card-glass {
@@ -1594,17 +1634,19 @@ html.flowrium-bloom-transition .third-scene-overlay {
   inset: 0;
   border-radius: inherit;
   /* Bloom(이미지2) 원래 톤 */
-  background: rgba(217, 217, 217, 0.22);
+  background: rgba(217, 217, 217, 0.14);
 }
 
 .bloom-detail-card:nth-child(1) .bloom-detail-card-glass {
-  background: rgba(217, 217, 217, 0.26);
+  background: rgba(217, 217, 217, 0.16);
 }
 
 .bloom-detail-card-label {
-  position: relative;
-  /* 이미지가 최상단이어야 함 */
-  z-index: 3;
+  position: absolute;
+  /* 타이포는 이미지 밑(레퍼런스처럼 이미지가 라벨을 일부 덮음) */
+  z-index: 2;
+  left: clamp(18px, 5.2%, 28px);
+  top: clamp(16px, 4.8%, 26px);
   margin: 0;
   font-family: 'Pretendard',
     -apple-system,
@@ -1612,8 +1654,9 @@ html.flowrium-bloom-transition .third-scene-overlay {
     system-ui,
     sans-serif;
   font-weight: 400;
-  font-size: clamp(1.45rem, 3.8vw, 2.95rem);
-  line-height: 1.05;
+  /* 텍스트 사이즈 절반 수준 */
+  font-size: clamp(0.92rem, 2.35vw, 1.85rem);
+  line-height: 0.96;
   letter-spacing: 0.03em;
   color: rgba(255, 255, 255, 0.98);
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.22);
@@ -1623,9 +1666,9 @@ html.flowrium-bloom-transition .third-scene-overlay {
   position: absolute;
   /* 카드 속 최상단 레이어: 이미지 */
   z-index: 6;
-  left: 50%;
+  left: 58%;
   top: 56%;
-  width: min(48%, 190px);
+  width: min(82%, 360px);
   height: auto;
   transform: translate(-50%, -50%);
   object-fit: contain;
@@ -1633,22 +1676,30 @@ html.flowrium-bloom-transition .third-scene-overlay {
   display: block;
   filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.28));
   --float-amp: 14px;
-  --float-scale: 2;
+  --float-scale: 1.05;
   animation: third-scene-media-float 5.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
   will-change: transform;
 }
 
 .bloom-detail-card:nth-child(2) .bloom-detail-card-img {
-  width: min(50%, 198px);
-  top: 58%;
+  width: min(84%, 380px);
+  top: 55%;
   animation-duration: 4.4s;
   animation-delay: -1.2s;
   filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.26));
 }
 
+.bloom-detail-card:nth-child(1) .bloom-detail-card-img {
+  width: min(98%, 520px);
+  top: 54%;
+  left: 61%;
+  --float-scale: 1.02;
+}
+
 .bloom-detail-card:nth-child(3) .bloom-detail-card-img {
-  width: min(50%, 198px);
-  top: 58%;
+  width: min(84%, 380px);
+  top: 56%;
+  left: 58%;
   animation-duration: 5.6s;
   animation-delay: -2.1s;
   filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.28));
@@ -1656,14 +1707,16 @@ html.flowrium-bloom-transition .third-scene-overlay {
 
 .bloom-detail-card-desc {
   position: absolute;
-  z-index: 3;
-  left: clamp(16px, 5%, 26px);
-  right: clamp(16px, 5%, 26px);
-  bottom: clamp(14px, 4.6%, 24px);
+  /* 타이포는 이미지 밑 */
+  z-index: 2;
+  left: clamp(18px, 5.2%, 28px);
+  right: clamp(18px, 5.2%, 28px);
+  bottom: clamp(16px, 5.2%, 26px);
   margin: 0;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   font-weight: 300;
-  font-size: clamp(0.78rem, 1.15vw, 0.98rem);
+  /* 텍스트 사이즈 절반 수준 */
+  font-size: clamp(0.52rem, 0.78vw, 0.74rem);
   line-height: 1.35;
   letter-spacing: 0.01em;
   color: rgba(255, 255, 255, 0.92);

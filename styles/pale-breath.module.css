@@ -1,0 +1,295 @@
+.root {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: #e4e4e4;
+  color: #111;
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.bgImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(1.02) contrast(0.98);
+}
+
+.back {
+  position: absolute;
+  z-index: 5;
+  top: clamp(18px, 3.2vh, 34px);
+  left: clamp(18px, 3.2vw, 36px);
+  width: 58px;
+  height: 58px;
+  border: 0;
+  padding: 0;
+  border-radius: 18px;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.02);
+}
+
+.back:active {
+  transform: translateY(0px) scale(0.98);
+}
+
+.back:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 4px;
+}
+
+.backGlyph {
+  display: block;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 34px;
+  line-height: 1;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.3);
+}
+
+.title {
+  position: absolute;
+  z-index: 3;
+  top: clamp(30px, 4.4vh, 70px);
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: 'Bagel Fat One', sans-serif;
+  font-weight: 400;
+  font-size: clamp(56px, 6.6vw, 128px);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.98);
+  text-shadow: 0 1.28px 54px rgba(0, 0, 0, 0.23);
+  white-space: nowrap;
+}
+
+.glass {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(217, 217, 217, 0.2) 0%,
+    rgba(115, 115, 115, 0.2) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: var(--glass-shadow, 0 18px 54px rgba(0, 0, 0, 0.18));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 26px))
+    saturate(var(--glass-saturate, 1.12)) brightness(var(--glass-bright, 1.03));
+  backdrop-filter: blur(var(--glass-blur, 26px)) saturate(var(--glass-saturate, 1.12))
+    brightness(var(--glass-bright, 1.03));
+}
+
+.leftCard,
+.conceptCard,
+.keywordsCard {
+  position: absolute;
+  z-index: 2;
+  border-radius: 30px;
+  overflow: hidden;
+}
+
+.leftCard {
+  left: clamp(22px, 4.2vw, 56px);
+  top: clamp(52%, 58vh, 62%);
+  transform: translateY(-50%);
+  width: min(360px, 30vw);
+  height: 140px;
+}
+
+.leftCardText {
+  position: relative;
+  z-index: 1;
+  padding: 14px 16px 14px 16px;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 4px 14.4px rgba(0, 0, 0, 0.33);
+  font-size: 14px;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+}
+
+.leftCardLine {
+  margin: 0;
+}
+
+.leftCardLine strong {
+  font-weight: 700;
+}
+
+.meter {
+  position: absolute;
+  z-index: 1;
+  left: 18%;
+  right: 18%;
+  bottom: 14px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.meterA,
+.meterB,
+.meterC {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+}
+
+.meterA {
+  left: 0;
+  width: 33%;
+  background: rgba(233, 229, 209, 0.55);
+}
+
+.meterB {
+  left: 33%;
+  width: 34%;
+  background: rgba(207, 219, 255, 0.55);
+}
+
+.meterC {
+  left: 67%;
+  width: 33%;
+  background: rgba(207, 242, 255, 0.62);
+}
+
+.conceptCard {
+  right: clamp(22px, 4.2vw, 56px);
+  top: clamp(52%, 58vh, 62%);
+  transform: translateY(-50%);
+  width: min(360px, 30vw);
+  height: 140px;
+}
+
+.keywordsCard {
+  right: clamp(22px, 4.2vw, 56px);
+  bottom: clamp(74px, 9vh, 120px);
+  width: min(360px, 30vw);
+  height: 124px;
+}
+
+.cardHeading {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 14px 16px 0 16px;
+  font-weight: 700;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 4px 14.4px rgba(0, 0, 0, 0.33);
+}
+
+.cardBody {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 8px 16px 14px 16px;
+  font-weight: 400;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 4px 14.4px rgba(0, 0, 0, 0.33);
+  line-height: 1.35;
+}
+
+.notesPill {
+  position: absolute;
+  z-index: 2;
+  left: clamp(22px, 4.2vw, 56px);
+  bottom: clamp(18px, 3.2vh, 34px);
+  width: min(560px, 52vw);
+  height: 60px;
+  border-radius: 30px;
+  overflow: hidden;
+}
+
+.notesText {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 18px 22px;
+  font-size: 15px;
+  color: rgba(0, 0, 0, 0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 920px) {
+  .leftCard,
+  .conceptCard,
+  .keywordsCard {
+    width: min(560px, 92vw);
+  }
+
+  .leftCard {
+    left: 50%;
+    top: 60%;
+    transform: translate(-50%, -50%);
+  }
+
+  .conceptCard {
+    left: 50%;
+    right: auto;
+    top: calc(60% + 190px);
+    transform: translate(-50%, -50%);
+  }
+
+  .keywordsCard {
+    left: 50%;
+    right: auto;
+    bottom: 120px;
+    transform: translateX(-50%);
+  }
+
+  .notesPill {
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(620px, 92vw);
+  }
+}
+
+@media (max-width: 520px) {
+  .title {
+    font-size: clamp(44px, 11vw, 72px);
+  }
+
+  .leftCard,
+  .conceptCard,
+  .keywordsCard {
+    height: 160px;
+    border-radius: 26px;
+  }
+
+  .notesPill {
+    height: 62px;
+    border-radius: 26px;
+  }
+
+  .notesText {
+    padding: 20px 22px;
+    font-size: 14px;
+  }
+
+  /* swatches removed */
+}
+

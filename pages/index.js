@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import BlurText from '../components/BlurText';
 
 const FlowriumMetallicTitle = dynamic(
@@ -27,11 +28,7 @@ const BLOOM_DETAIL_HERO =
   'https://www.figma.com/api/mcp/asset/300ad33e-1582-45dc-b188-8140cad530bf';
 const BLOOM_DETAIL_BACK =
   'https://www.figma.com/api/mcp/asset/697f8320-93fc-4b9e-9c65-7fde7c2807cb';
-const BLOOM_DETAIL_CARD_IMAGES = {
-  pale: 'https://www.figma.com/api/mcp/asset/b3b8ccbd-91f0-4268-bb98-7eafd258975d',
-  haze: 'https://www.figma.com/api/mcp/asset/ef556c60-9311-4632-8034-b8ae137ea2cf',
-  light: 'https://www.figma.com/api/mcp/asset/53830ab0-2c9e-4223-bd36-3cd4f2026d8d',
-};
+// Bloom 상세(모달) 카드 이미지는 제거(글래스 카드만)
 
 const BLOOM_TRANSITION_MS = 2280;
 
@@ -58,6 +55,7 @@ const LETTER_TITLE_PROPS = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const scrollSpacerRef = useRef(null);
   const bgVideosRef = useRef([]);
   const scrollVideoStateRef = useRef({
@@ -71,6 +69,17 @@ export default function Home() {
   const [loaderCycle] = useState(0);
   const [bloomTransitionOn, setBloomTransitionOn] = useState(false);
   const [bloomDetailOpen, setBloomDetailOpen] = useState(false);
+
+  const goToPaleBreath = () => {
+    if (bloomNavBusyRef.current) return;
+    bloomNavBusyRef.current = true;
+    setBloomDetailOpen(false);
+    Promise.resolve(router.push('/pale-breath')).finally(() => {
+      window.setTimeout(() => {
+        bloomNavBusyRef.current = false;
+      }, 450);
+    });
+  };
 
   useEffect(() => {
     const minLoaderMs = HERO_REVEAL_MS;
@@ -788,32 +797,30 @@ export default function Home() {
               onClick={closeBloomDetail}
               aria-label="뒤로"
             >
-              <img src={BLOOM_DETAIL_BACK} alt="" width={48} height={48} decoding="async" />
+              <span aria-hidden>{'<'}</span>
             </button>
             <h1 id="bloom-detail-title" className="bloom-detail-title font-bagel">
               Bloom
             </h1>
             <div className="bloom-detail-cards">
-              <article className="bloom-detail-card">
+              <button
+                type="button"
+                className="bloom-detail-card bloom-detail-card-link"
+                onClick={goToPaleBreath}
+                aria-label="PALE BREATH 페이지로 이동"
+              >
                 <div className="bloom-detail-card-glass" aria-hidden />
                 <p className="bloom-detail-card-label">
                   PALE
                   <br />
                   BREATH
                 </p>
-                <img
-                  src={BLOOM_DETAIL_CARD_IMAGES.pale}
-                  alt=""
-                  className="bloom-detail-card-img"
-                  draggable={false}
-                  decoding="async"
-                />
                 <p className="bloom-detail-card-desc">
                   가장 옅은 순간,
                   <br />
                   존재보다 먼저 스며든다
                 </p>
-              </article>
+              </button>
               <article className="bloom-detail-card">
                 <div className="bloom-detail-card-glass" aria-hidden />
                 <p className="bloom-detail-card-label">
@@ -821,13 +828,6 @@ export default function Home() {
                   <br />
                   HAZE
                 </p>
-                <img
-                  src={BLOOM_DETAIL_CARD_IMAGES.haze}
-                  alt=""
-                  className="bloom-detail-card-img"
-                  draggable={false}
-                  decoding="async"
-                />
                 <p className="bloom-detail-card-desc">
                   부드럽게 번지며,
                   <br />
@@ -841,13 +841,6 @@ export default function Home() {
                   <br />
                   LIGHT
                 </p>
-                <img
-                  src={BLOOM_DETAIL_CARD_IMAGES.light}
-                  alt=""
-                  className="bloom-detail-card-img"
-                  draggable={false}
-                  decoding="async"
-                />
                 <p className="bloom-detail-card-desc">
                   남아 있는 기척 위로,
                   <br />
