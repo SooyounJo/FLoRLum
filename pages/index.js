@@ -8,10 +8,10 @@ const FlowriumMetallicTitle = dynamic(
   { ssr: false }
 );
 
-const HERO_REVEAL_MS = 1050;
+const HERO_REVEAL_MS = 4000;
 
-/** 스크롤 멈춘 뒤 이 비율(0~1) 지점으로 스냅 — 구간 건너뛰기 방지 (총 스크롤 길이 대비) */
-const SNAP_SCROLL_RATIOS = [0, 0.21, 0.4, 0.58, 0.76, 0.9, 1];
+/** 스크롤 멈춘 뒤 이 비율(0~1) 지점으로 스냅 (두 번 “탁탁”: 히어로 → 2페이지 → 카드) */
+const SNAP_SCROLL_RATIOS = [0, 0.21, 0.9];
 
 function clamp01(t) {
   return Math.max(0, Math.min(1, t));
@@ -68,21 +68,25 @@ export default function Home() {
   });
   const bloomNavBusyRef = useRef(false);
   const [showIntroLoader, setShowIntroLoader] = useState(true);
-  const [loaderCycle, setLoaderCycle] = useState(0);
+  const [loaderCycle] = useState(0);
   const [bloomTransitionOn, setBloomTransitionOn] = useState(false);
   const [bloomDetailOpen, setBloomDetailOpen] = useState(false);
 
   useEffect(() => {
-    const minLoaderMs = 3400;
+    const minLoaderMs = HERO_REVEAL_MS;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
     const hideTimer = window.setTimeout(() => {
       setShowIntroLoader(false);
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
     }, minLoaderMs);
-    const cycleTimer = window.setInterval(() => {
-      setLoaderCycle((v) => v + 1);
-    }, 3600);
     return () => {
       window.clearTimeout(hideTimer);
-      window.clearInterval(cycleTimer);
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
     };
   }, []);
 
@@ -107,6 +111,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!bloomTransitionOn) return undefined;
+    document.documentElement.classList.add('flowrium-bloom-transition');
     const reduceMotion =
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -114,6 +119,7 @@ export default function Home() {
       setBloomTransitionOn(false);
       setBloomDetailOpen(true);
       bloomNavBusyRef.current = false;
+      document.documentElement.classList.remove('flowrium-bloom-transition');
       return undefined;
     }
     const t = window.setTimeout(() => {
@@ -121,7 +127,10 @@ export default function Home() {
       setBloomDetailOpen(true);
       bloomNavBusyRef.current = false;
     }, BLOOM_TRANSITION_MS);
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      document.documentElement.classList.remove('flowrium-bloom-transition');
+    };
   }, [bloomTransitionOn]);
 
   const openBloomDetailFromCard = () => {
@@ -155,7 +164,8 @@ export default function Home() {
     const setSpacerHeight = () => {
       const el = scrollSpacerRef.current;
       if (!el) return;
-      const h = Math.max(window.innerHeight * 3.75, 2200);
+      // 스크롤 감도를 둔감하게(휠 한 번에 p가 너무 빨리 변하지 않게)
+      const h = Math.max(window.innerHeight * 4.6, 2800);
       el.style.height = `${h}px`;
     };
 
@@ -242,6 +252,7 @@ export default function Home() {
       if (!root.classList.contains('hero-revealed')) {
         root.classList.remove(
           'flowrium-scroll-end',
+          'flowrium-glass-cursor',
           'flowrium-second-atmosphere',
           'flowrium-third-atmosphere',
           'flowrium-bg-no-lens',
@@ -269,17 +280,34 @@ export default function Home() {
       const blurT = smoothstep(0, blurPhase, p);
       const blurOp = 1 - blurT;
       const glassOp = 1 - blurT * 0.98;
-      /* 메인 → 플래닛: 앞 구간에서 빨리 안착해 두 번째 화면 구간을 길게 유지 */
-      const nextOp = smoothstep(0.08, 0.58, p);
-      /* move.mp4만 먼저(플래닛 페이드아웃) — 카드 UI는 그 다음 구간에서만 */
-      const moveOp = smoothstep(0.68, 0.82, p);
-      const cardsOp = smoothstep(0.86, 0.985, p);
-      /* 2D 오버레이는 두 번째 레이어(turn planet 영상)가 보이기 시작할 때 같이 페이드 */
-      const secondSceneOp = smoothstep(0.12, 0.88, nextOp);
+
+      // 첫 페이지(히어로)에서는 글래스 커서 금지 → 2페이지(스냅 0.21)부터만 적용
+      root.classList.toggle('flowrium-glass-cursor', p >= 0.21);
+
+      /* 구간을 스냅 비율과 맞춤:
+         0~0.21(히어로→플래닛), 0.21~0.4(타이포 상단 이동), 0.4~0.58(move), 0.76~0.9(cards) */
+      const nextOp = smoothstep(0.04, 0.21, p);
+      const moveOp = smoothstep(0.4, 0.58, p);
+      const cardsOp = smoothstep(0.76, 0.9, p);
+
+      /* 첫 스크롤에서 2페이지(두 번째 오버레이)로 자연스럽게 전환되도록 */
+      const secondSceneOp = smoothstep(0.06, 0.21, p);
 
       const vh = window.innerHeight;
+
+      /* 1) 첫 스크롤: 메인 타이포는 아래로 내려가지 않고 서서히 축소 → 2페이지 상태로 연속 전환 */
+      const firstScrollT = smoothstep(0.0, 0.21, p);
+      const wordmarkScale = 1 - 0.22 * firstScrollT;
+
+      /* 2) 다음 스크롤: 타이포가 사라지지 않고 화면 상단으로 이동(도달 후 유지) */
+      const topMoveT = smoothstep(0.21, 0.4, p);
+      const desiredTop = Math.max(48, vh * 0.09);
+      const wordmarkEl = document.querySelector('.second-scene-wordmark');
+      const wmH = wordmarkEl ? wordmarkEl.getBoundingClientRect().height : Math.min(140, vh * 0.2);
+      const liftMax = Math.max(0, vh * 0.5 - wmH * 0.5 - desiredTop);
+      const thirdLift = liftMax * topMoveT;
+
       const wordmarkWhite = smoothstep(0.07, 0.34, p);
-      const wordmarkShiftY = smoothstep(0.04, 0.68, p) * (vh * 0.32);
       /* 화이트 전환 중엔 배경을 살짝 누르고, 화이트가 거의 끝나면 다시 올려 “나타나는” 느낌 */
       const bgReveal = reduceMotion
         ? 1
@@ -289,7 +317,8 @@ export default function Home() {
             (1 - smoothstep(0.5, 0.92, wordmarkWhite));
 
       root.style.setProperty('--flowrium-bg-reveal', String(bgReveal));
-      root.style.setProperty('--flowrium-wordmark-shift-y', `${wordmarkShiftY}px`);
+      root.style.setProperty('--flowrium-wordmark-shift-y', `0px`);
+      root.style.setProperty('--flowrium-wordmark-scale', String(wordmarkScale));
       root.style.setProperty('--flowrium-wordmark-white', String(wordmarkWhite));
 
       root.style.setProperty('--flowrium-blur-op', String(blurOp));
@@ -299,7 +328,6 @@ export default function Home() {
       root.style.setProperty('--flowrium-move-op', String(moveOp));
       root.style.setProperty('--flowrium-cards-op', String(cardsOp));
 
-      const thirdLift = moveOp * Math.min(vh * 0.26, 220);
       root.style.setProperty('--flowrium-third-lift', `${thirdLift}px`);
 
       scrollVideoStateRef.current = { blurOp, nextOp, moveOp, cardsOp };
@@ -326,53 +354,129 @@ export default function Home() {
 
     let snapDebounce = 0;
     let snapLockUntil = 0;
+    let lastScrollY = 0;
+    let lastScrollDir = 1; // 1: down, -1: up
+    let snapIndex = 0;
+    let wheelGestureActive = false;
+    let wheelGestureSnapUsed = false;
+    let wheelGestureTimer = 0;
+    let snappingToY = null;
+
+    const getSnapTargets = () => {
+      const maxScroll = Math.max(
+        1,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
+      const targets = SNAP_SCROLL_RATIOS.map((r) =>
+        Math.round(clamp01(r) * maxScroll)
+      ).sort((a, b) => a - b);
+      return { maxScroll, targets };
+    };
+
+    const syncSnapIndexFromY = (y, targets) => {
+      let nearestIdx = 0;
+      let best = Math.abs(y - targets[0]);
+      for (let i = 1; i < targets.length; i += 1) {
+        const d = Math.abs(y - targets[i]);
+        if (d < best) {
+          best = d;
+          nearestIdx = i;
+        }
+      }
+      return { nearestIdx, best };
+    };
+
+    const snapByStep = (step) => {
+      if (!root.classList.contains('hero-revealed')) return;
+      if (document.documentElement.classList.contains('flowrium-bloom-detail')) return;
+      if (performance.now() < snapLockUntil) return;
+      if (wheelGestureActive && wheelGestureSnapUsed) return;
+
+      const { maxScroll, targets } = getSnapTargets();
+      const y = window.scrollY || document.documentElement.scrollTop || 0;
+      const { nearestIdx, best } = syncSnapIndexFromY(y, targets);
+      const epsilon = Math.max(14, maxScroll * 0.014);
+      if (best < epsilon) snapIndex = nearestIdx;
+
+      const destIdx = Math.max(0, Math.min(targets.length - 1, snapIndex + step));
+      const dest = targets[destIdx];
+      snapIndex = destIdx;
+
+      const reduceSnap =
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      snapLockUntil = performance.now() + (reduceSnap ? 160 : 980);
+      snappingToY = dest;
+      if (wheelGestureActive) wheelGestureSnapUsed = true;
+      window.scrollTo({
+        top: dest,
+        behavior: reduceSnap ? 'auto' : 'smooth',
+      });
+    };
 
     const snapToNearestSection = () => {
       if (typeof window === 'undefined') return;
       if (!root.classList.contains('hero-revealed')) return;
       if (document.documentElement.classList.contains('flowrium-bloom-detail')) return;
       if (performance.now() < snapLockUntil) return;
+      // 한 번의 휠/트랙패드 제스처에서 스냅은 1회만(중간 화면이 자꾸 패스되는 문제 방지)
+      if (wheelGestureActive && wheelGestureSnapUsed) return;
 
-      const maxScroll = Math.max(
-        1,
-        document.documentElement.scrollHeight - window.innerHeight
-      );
+      const { maxScroll, targets } = getSnapTargets();
       const y = window.scrollY || document.documentElement.scrollTop || 0;
-      const targets = SNAP_SCROLL_RATIOS.map((r) =>
-        Math.round(clamp01(r) * maxScroll)
-      );
-      let nearest = targets[0];
-      let best = Math.abs(y - nearest);
-      for (let i = 1; i < targets.length; i += 1) {
-        const d = Math.abs(y - targets[i]);
-        if (d < best) {
-          best = d;
-          nearest = targets[i];
-        }
+
+      // 이미 타깃 근처면 현재 인덱스 갱신만(추가 스냅 금지)
+      const { nearestIdx, best } = syncSnapIndexFromY(y, targets);
+      const epsilon = Math.max(14, maxScroll * 0.014);
+      if (best < epsilon) {
+        snapIndex = nearestIdx;
+        return;
       }
 
-      const epsilon = Math.max(10, maxScroll * 0.015);
-      if (best < epsilon) return;
+      // 강한 스냅: 현재 y가 어디까지 갔든, "한 번 스크롤에 한 단계"만 이동 (3페이지 모두 확인 가능)
+      const step = lastScrollDir >= 0 ? 1 : -1;
+      snapByStep(step);
+      return;
 
       const reduceSnap =
         typeof window !== 'undefined' &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      snapLockUntil = performance.now() + (reduceSnap ? 80 : 520);
+      // smooth 스크롤 중 연속 스냅 방지(조금 더 강하게 락)
+      snapLockUntil = performance.now() + (reduceSnap ? 120 : 900);
+      snappingToY = dest;
+      if (wheelGestureActive) wheelGestureSnapUsed = true;
       window.scrollTo({
-        top: nearest,
+        top: dest,
         behavior: reduceSnap ? 'auto' : 'smooth',
       });
     };
 
     const scheduleScrollSnap = () => {
       window.clearTimeout(snapDebounce);
-      snapDebounce = window.setTimeout(snapToNearestSection, 130);
+      snapDebounce = window.setTimeout(snapToNearestSection, 85);
     };
 
     const onScroll = () => {
       if (!scrollRaf) scrollRaf = window.requestAnimationFrame(syncScroll);
-      scheduleScrollSnap();
+      const y = window.scrollY || document.documentElement.scrollTop || 0;
+      const dy = y - lastScrollY;
+      if (Math.abs(dy) > 2) lastScrollDir = dy > 0 ? 1 : -1;
+      lastScrollY = y;
+
+      // 프로그램 스냅 도중엔 추가 스냅 예약을 약화(제스처 2중 스냅 방지)
+      if (snappingToY !== null) {
+        const maxScroll = Math.max(
+          1,
+          document.documentElement.scrollHeight - window.innerHeight
+        );
+        const epsilon = Math.max(14, maxScroll * 0.014);
+        if (Math.abs(y - snappingToY) <= epsilon) snappingToY = null;
+      }
+
+      // wheel 제스처는 onWheel에서 "한 번에 한 단계"로 처리
+      if (!wheelGestureActive) scheduleScrollSnap();
     };
 
     const onScrollEndSnap = () => {
@@ -383,6 +487,24 @@ export default function Home() {
 
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('scrollend', onScrollEndSnap, { passive: true });
+
+    const onWheel = (e) => {
+      if (!root.classList.contains('hero-revealed')) return;
+      if (document.documentElement.classList.contains('flowrium-bloom-detail')) return;
+      if (Math.abs(e.deltaY) < 1) return;
+      // 휠 입력은 "한 번에 한 화면" 스냅으로 직접 처리(무겁게)
+      e.preventDefault();
+      wheelGestureActive = true;
+      window.clearTimeout(wheelGestureTimer);
+      wheelGestureTimer = window.setTimeout(() => {
+        wheelGestureActive = false;
+        wheelGestureSnapUsed = false;
+      }, 220);
+      const step = e.deltaY > 0 ? 1 : -1;
+      lastScrollDir = step;
+      snapByStep(step);
+    };
+    window.addEventListener('wheel', onWheel, { passive: false });
 
     const onResize = () => {
       setSpacerHeight();
@@ -410,12 +532,15 @@ export default function Home() {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('scrollend', onScrollEndSnap);
+      window.removeEventListener('wheel', onWheel);
+      window.clearTimeout(wheelGestureTimer);
       document.removeEventListener('visibilitychange', onVisibilityPlayback);
       window.removeEventListener('focus', ensureVideoPlayback);
       if (scrollRaf) window.cancelAnimationFrame(scrollRaf);
       root.classList.remove(
         'flowrium-home',
         'hero-revealed',
+        'flowrium-glass-cursor',
         'flowrium-scroll-end',
         'flowrium-second-atmosphere',
         'flowrium-third-atmosphere',
@@ -464,6 +589,7 @@ export default function Home() {
               onAnimationComplete={() => {}}
               className="intro-loader-text font-bagel"
             />
+            <p className="intro-loader-sub">find your planet</p>
           </div>
         ) : null}
         <div className="bg-flower" aria-hidden>
@@ -585,54 +711,48 @@ export default function Home() {
                   }
                 }}
               >
-                <div className="third-scene-card-glass" />
+                <div className="bloom-detail-card-glass" aria-hidden />
                 <span className="third-scene-card-title">BLOOM</span>
                 <span className="third-scene-card-title third-scene-card-title-br">BLOOM</span>
-                <div className="third-scene-card-media">
-                  <img
-                    src="https://www.figma.com/api/mcp/asset/b9251bb6-dc72-4def-a240-7f16c2d544b5"
-                    alt=""
-                    className="third-scene-card-img"
-                    draggable={false}
-                    decoding="async"
-                  />
-                </div>
+                <img
+                  src="https://www.figma.com/api/mcp/asset/b9251bb6-dc72-4def-a240-7f16c2d544b5"
+                  alt=""
+                  className="bloom-detail-card-img third-scene-bloom-card-img"
+                  draggable={false}
+                  decoding="async"
+                />
                 <div className="third-scene-card-copy">
                   <p className="third-scene-card-head">Air / Diffusion</p>
                   <p className="third-scene-card-body">air, breath, soft presence</p>
                 </div>
               </article>
               <article className="third-scene-card">
-                <div className="third-scene-card-glass" />
+                <div className="bloom-detail-card-glass" aria-hidden />
                 <span className="third-scene-card-title">PRISM</span>
                 <span className="third-scene-card-title third-scene-card-title-br">PRISM</span>
-                <div className="third-scene-card-media">
-                  <img
-                    src="https://www.figma.com/api/mcp/asset/fdb7a66c-6a44-48c0-b4b6-575065e3b19d"
-                    alt=""
-                    className="third-scene-card-img"
-                    draggable={false}
-                    decoding="async"
-                  />
-                </div>
+                <img
+                  src="https://www.figma.com/api/mcp/asset/fdb7a66c-6a44-48c0-b4b6-575065e3b19d"
+                  alt=""
+                  className="bloom-detail-card-img third-scene-bloom-card-img"
+                  draggable={false}
+                  decoding="async"
+                />
                 <div className="third-scene-card-copy">
                   <p className="third-scene-card-head">Light / Structure</p>
                   <p className="third-scene-card-body">light, reflection, transparency</p>
                 </div>
               </article>
               <article className="third-scene-card">
-                <div className="third-scene-card-glass" />
+                <div className="bloom-detail-card-glass" aria-hidden />
                 <span className="third-scene-card-title">CORE</span>
                 <span className="third-scene-card-title third-scene-card-title-br">CORE</span>
-                <div className="third-scene-card-media">
-                  <img
-                    src="https://www.figma.com/api/mcp/asset/8761e7bb-ff04-48b5-a65d-56d898fb4c00"
-                    alt=""
-                    className="third-scene-card-img"
-                    draggable={false}
-                    decoding="async"
-                  />
-                </div>
+                <img
+                  src="https://www.figma.com/api/mcp/asset/8761e7bb-ff04-48b5-a65d-56d898fb4c00"
+                  alt=""
+                  className="bloom-detail-card-img third-scene-bloom-card-img"
+                  draggable={false}
+                  decoding="async"
+                />
                 <div className="third-scene-card-copy">
                   <p className="third-scene-card-head">Density / Foundation</p>
                   <p className="third-scene-card-body">density, ground, depth</p>
@@ -649,13 +769,18 @@ export default function Home() {
             aria-labelledby="bloom-detail-title"
           >
             <div className="bloom-detail-bg" aria-hidden>
-              <img
-                src={BLOOM_DETAIL_HERO}
-                alt=""
-                className="bloom-detail-hero-img"
-                draggable={false}
-                decoding="async"
-              />
+              <video
+                className="bloom-detail-hero-video"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                disablePictureInPicture
+                aria-hidden
+              >
+                <source src="/bloom.mp4" type="video/mp4" />
+              </video>
             </div>
             <button
               type="button"
@@ -671,48 +796,81 @@ export default function Home() {
             <div className="bloom-detail-cards">
               <article className="bloom-detail-card">
                 <div className="bloom-detail-card-glass" aria-hidden />
-                <p className="bloom-detail-card-label">PALE BREATH</p>
-                <div className="bloom-detail-card-media">
-                  <img
-                    src={BLOOM_DETAIL_CARD_IMAGES.pale}
-                    alt=""
-                    className="bloom-detail-card-img"
-                    draggable={false}
-                    decoding="async"
-                  />
-                </div>
+                <p className="bloom-detail-card-label">
+                  PALE
+                  <br />
+                  BREATH
+                </p>
+                <img
+                  src={BLOOM_DETAIL_CARD_IMAGES.pale}
+                  alt=""
+                  className="bloom-detail-card-img"
+                  draggable={false}
+                  decoding="async"
+                />
+                <p className="bloom-detail-card-desc">
+                  가장 옅은 순간,
+                  <br />
+                  존재보다 먼저 스며든다
+                </p>
               </article>
               <article className="bloom-detail-card">
                 <div className="bloom-detail-card-glass" aria-hidden />
-                <p className="bloom-detail-card-label">SOFT HAZE</p>
-                <div className="bloom-detail-card-media">
-                  <img
-                    src={BLOOM_DETAIL_CARD_IMAGES.haze}
-                    alt=""
-                    className="bloom-detail-card-img"
-                    draggable={false}
-                    decoding="async"
-                  />
-                </div>
+                <p className="bloom-detail-card-label">
+                  SOFT
+                  <br />
+                  HAZE
+                </p>
+                <img
+                  src={BLOOM_DETAIL_CARD_IMAGES.haze}
+                  alt=""
+                  className="bloom-detail-card-img"
+                  draggable={false}
+                  decoding="async"
+                />
+                <p className="bloom-detail-card-desc">
+                  부드럽게 번지며,
+                  <br />
+                  경계를 흐린다
+                </p>
               </article>
               <article className="bloom-detail-card">
                 <div className="bloom-detail-card-glass" aria-hidden />
-                <p className="bloom-detail-card-label">FADE LIGHT</p>
-                <div className="bloom-detail-card-media">
-                  <img
-                    src={BLOOM_DETAIL_CARD_IMAGES.light}
-                    alt=""
-                    className="bloom-detail-card-img"
-                    draggable={false}
-                    decoding="async"
-                  />
-                </div>
+                <p className="bloom-detail-card-label">
+                  FADE
+                  <br />
+                  LIGHT
+                </p>
+                <img
+                  src={BLOOM_DETAIL_CARD_IMAGES.light}
+                  alt=""
+                  className="bloom-detail-card-img"
+                  draggable={false}
+                  decoding="async"
+                />
+                <p className="bloom-detail-card-desc">
+                  남아 있는 기척 위로,
+                  <br />
+                  조용히 사라진다
+                </p>
               </article>
             </div>
           </div>
         ) : null}
         {bloomTransitionOn ? (
           <div className="bloom-glass-transition" aria-hidden>
+            <video
+              className="bloom-glass-transition-bg"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              disablePictureInPicture
+              aria-hidden
+            >
+              <source src="/bloom.mp4" type="video/mp4" />
+            </video>
             <div className="bloom-glass-transition-card" />
             <div className="bloom-glass-transition-card" />
             <div className="bloom-glass-transition-card" />
@@ -742,10 +900,12 @@ export default function Home() {
           inset: 0;
           z-index: 50;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
           background: #000;
-          pointer-events: none;
+          pointer-events: auto;
+          animation: introLoaderFade ${HERO_REVEAL_MS}ms ease forwards;
         }
         .intro-loader-text {
           margin: 0;
@@ -753,6 +913,51 @@ export default function Home() {
           font-size: clamp(2.2rem, 8vw, 6rem);
           letter-spacing: 0.04em;
           text-align: center;
+          filter: blur(0);
+        }
+        .intro-loader-sub {
+          margin: 0.65rem 0 0;
+          color: rgba(255, 255, 255, 0.92);
+          font-size: clamp(0.9rem, 2.2vw, 1.15rem);
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          opacity: 0;
+          animation: introLoaderSub ${HERO_REVEAL_MS}ms ease forwards;
+        }
+        @keyframes introLoaderFade {
+          0% {
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          78% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+          }
+        }
+        @keyframes introLoaderSub {
+          0%,
+          18% {
+            opacity: 0;
+            transform: translateY(10px);
+            filter: blur(6px);
+          }
+          34% {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
+          }
+          78% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-6px);
+            filter: blur(3px);
+          }
         }
         .scroll-cue {
           position: fixed;

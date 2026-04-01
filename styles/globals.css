@@ -66,6 +66,129 @@ body {
   color: #111111;
 }
 
+/* 전역 상단 블러 프레임 레이어 (Figma Rectangle 240655647) */
+body::before {
+  content: '';
+  position: fixed;
+  width: 2185px;
+  height: 1621px;
+  left: -169px;
+  top: -119px;
+  box-sizing: border-box;
+  border: 160px solid rgba(255, 255, 255, 1);
+  filter: blur(126.85px);
+  -webkit-filter: blur(126.85px);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 80;
+  transform: translate3d(0, 0, 0);
+  will-change: filter, opacity, transform;
+}
+
+/* 렌즈(선명 원) 안쪽에는 전역 블러 프레임이 겹치면 안 됨 */
+html.hero-revealed:not(.flowrium-bg-no-lens) body::before {
+  mask-image: radial-gradient(
+    circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0) var(--spot-hard),
+    rgba(255, 255, 255, 0.8) var(--spot-fade-start),
+    rgba(255, 255, 255, 1) var(--spot-fade-end),
+    #fff 100%
+  );
+  -webkit-mask-image: radial-gradient(
+    circle var(--spot-r) at var(--spot-fast-x, 50vw) var(--spot-fast-y, 50vh),
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0) var(--spot-hard),
+    rgba(255, 255, 255, 0.8) var(--spot-fade-start),
+    rgba(255, 255, 255, 1) var(--spot-fade-end),
+    #fff 100%
+  );
+  mask-mode: alpha;
+}
+
+/* 공통 글래스 토큰(2번 이미지: 스트로크 약하고 흐린 유리) */
+:root {
+  /* Bloom(이미지2) 쪽: 스트로크 약하고 흐린 유리 */
+  --glass-blur: 26px;
+  --glass-saturate: 1.12;
+  --glass-bright: 1.03;
+  --glass-border: rgba(255, 255, 255, 0.12);
+  /* 투명도 ↑ (덜 불투명) */
+  --glass-bg: rgba(217, 217, 217, 0.14);
+  --glass-shadow: 0 18px 54px rgba(0, 0, 0, 0.18);
+  --glass-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  --glass-inset-bottom: inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* 글래스 공통 표면(카드/전환/상세) */
+:is(.third-scene-card-glass, .bloom-detail-card-glass, .bloom-glass-transition-card) {
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-bright));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-bright));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-inset-top), var(--glass-inset-bottom);
+  background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 58%,
+      rgba(255, 255, 255, 0.035) 100%
+    ),
+    var(--glass-bg);
+}
+
+:is(.third-scene-card-glass, .bloom-detail-card-glass, .bloom-glass-transition-card)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 85% at 10% 8%, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.12) 34%, rgba(255, 255, 255, 0) 62%),
+    radial-gradient(95% 75% at 70% 72%, rgba(0, 0, 0, 0.14) 0%, rgba(0, 0, 0, 0) 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(0, 0, 0, 0.05) 100%);
+  opacity: 0.85;
+}
+
+:is(.third-scene-card-glass, .bloom-detail-card-glass, .bloom-glass-transition-card)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* 스크롤 시작(한 번이라도) 이후: 커서를 글래스 원으로 */
+@media (pointer: fine) {
+  html.flowrium-glass-cursor body {
+    cursor: none;
+  }
+
+  html.flowrium-glass-cursor body::after {
+    content: '';
+    position: fixed;
+    left: var(--spot-fast-x, 50vw);
+    top: var(--spot-fast-y, 50vh);
+    width: 72px;
+    height: 72px;
+    border-radius: 999px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 9999;
+    /* 커서 뒤(렌즈)는 선명해야 하므로 커서 자체는 backdrop-blur 금지 */
+    background:
+      radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 55%),
+      radial-gradient(circle at 70% 75%, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0) 56%),
+      rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+      0 18px 48px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.10);
+  }
+}
+
 /* 메인 워드마크와 동일 폰트 (HTML 사용 시) */
 .font-bagel {
   font-family: 'Bagel Fat One', cursive;
@@ -376,6 +499,36 @@ html.hero-revealed .bg-flower {
   transition: opacity 0.55s ease-out;
 }
 
+/* 3페이지(카드/무브)로 넘어가면 2페이지 안내 문구는 절대 보이면 안 됨 */
+html.flowrium-third-atmosphere .second-scene-stack {
+  opacity: 0 !important;
+  visibility: hidden;
+  transition: opacity 0.25s ease-out, visibility 0s linear 0.25s;
+}
+
+/* 스크롤 유도: 살짝 아래로 내려가는 반복 모션(두 번째 화면에서만) */
+@keyframes secondSceneScrollNudge {
+  0%,
+  72%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  86% {
+    transform: translateX(-50%) translateY(10px);
+  }
+}
+
+html.flowrium-second-atmosphere:not(.flowrium-cards-state-2) .second-scene-stack {
+  animation: secondSceneScrollNudge 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.flowrium-second-atmosphere:not(.flowrium-cards-state-2) .second-scene-stack {
+    animation: none;
+  }
+}
+
 .second-scene-wordmark {
   position: absolute;
   left: 50%;
@@ -395,14 +548,10 @@ html.hero-revealed .bg-flower {
   padding: 0 12px;
   box-sizing: border-box;
   text-shadow:
-    0 1.28px 54px rgba(0, 0, 0, 0.23),
-    0 0 1px rgba(0, 0, 0, 0.9),
-    0 2px 16px rgba(0, 0, 0, 0.45),
-    0 0 28px rgba(255, 255, 255, 0.25);
-  transition:
-    top 0.7s cubic-bezier(0.33, 1, 0.68, 1),
-    transform 0.7s cubic-bezier(0.33, 1, 0.68, 1),
-    font-size 0.65s ease;
+    0 1px 32px rgba(0, 0, 0, 0.18),
+    0 0 1px rgba(0, 0, 0, 0.55);
+  will-change: transform;
+  transition: font-size 0.65s ease;
 }
 
 /* State 2 — 카드 행: FLOWRIUM 헤더 상단 고정, 워드마크가 카드·배경 위에 보이도록 */
@@ -412,13 +561,12 @@ html.flowrium-cards-state-2 .second-scene-overlay {
 
 html.flowrium-cards-state-2 .second-scene-wordmark {
   top: max(48px, env(safe-area-inset-top, 0px), 9vh);
-  font-size: clamp(1.85rem, 5vw, 4.25rem);
-  transform: translate(-50%, 0) translateY(calc(-1 * var(--flowrium-third-lift, 0px)));
+  font-size: clamp(1.7rem, 4.6vw, 3.9rem);
+  /* 상단 도달 이후엔 더 위로 날아가지 않게 고정 */
+  transform: translate(-50%, 0);
   text-shadow:
-    0 1.28px 54px rgba(0, 0, 0, 0.23),
-    0 0 1px rgba(0, 0, 0, 0.85),
-    0 2px 20px rgba(0, 0, 0, 0.4),
-    0 0 32px rgba(255, 255, 255, 0.28);
+    0 1px 34px rgba(0, 0, 0, 0.18),
+    0 0 1px rgba(0, 0, 0, 0.55);
 }
 
 .second-scene-dot {
@@ -499,11 +647,14 @@ html.flowrium-cards-state-2 .second-scene-wordmark {
 .third-scene-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(14px, 1.85vw, 26px);
+  gap: clamp(12px, 1.6vw, 22px);
   width: 100%;
-  max-width: min(1240px, 100%);
+  max-width: min(1160px, 100%);
   align-items: start;
   justify-items: center;
+  /* 지향(1번): 카드가 더 크고 위로 */
+  transform: translateY(calc(-1 * clamp(0.5vh, 1.2vw, 2.5vh)));
+  transition: transform 0.75s cubic-bezier(0.33, 1, 0.68, 1);
 }
 
 /* State 2: 상단은 FLOWRIUM 전용 영역, 카드는 아래쪽 행으로 정리 */
@@ -517,6 +668,7 @@ html.flowrium-cards-state-2 .third-scene-inner {
 html.flowrium-cards-state-2 .third-scene-cards {
   margin-top: auto;
   max-width: min(1180px, 100%);
+  transform: translateY(calc(-1 * clamp(0.25vh, 0.9vw, 2vh)));
 }
 
 html.flowrium-cards-state-2 .third-scene-veil {
@@ -533,6 +685,7 @@ html.flowrium-cards-state-2 .third-scene-veil {
   .third-scene-cards {
     grid-template-columns: 1fr;
     max-width: min(440px, 100%);
+    transform: translateY(calc(-1 * clamp(0.25vh, 1.4vw, 1.8vh)));
   }
 
   .third-scene-inner {
@@ -541,7 +694,7 @@ html.flowrium-cards-state-2 .third-scene-veil {
 
   html.flowrium-cards-state-2 .second-scene-wordmark {
     top: max(40px, env(safe-area-inset-top, 0px), 7vh);
-    font-size: clamp(1.65rem, 6vw, 3.25rem);
+    font-size: clamp(1.55rem, 5.4vw, 3rem);
   }
 
   html.flowrium-cards-state-2 .third-scene-inner {
@@ -550,73 +703,48 @@ html.flowrium-cards-state-2 .third-scene-veil {
 
 }
 
-/* 글래스 카드 — 본문 높이는 aspect+max-height 유지, padding-bottom만으로 하단 연장(위 배치 불변) */
+/* 글래스 카드 — 지향(1번): 더 큰 카드, 완전 라운드, 하단 연장/컷 제거 */
 .third-scene-card {
-  --third-scene-card-pad-bottom: clamp(11vh, 10vw, 20vh);
+  --third-scene-card-pad-bottom: 0px;
   position: relative;
-  box-sizing: content-box;
+  box-sizing: border-box;
   width: 100%;
-  max-width: min(372px, 29.5vw);
+  max-width: min(400px, 31vw);
   aspect-ratio: 598 / 850;
-  max-height: min(57vh, 518px);
-  height: auto;
+  height: min(58vh, 520px);
+  max-height: none;
   padding: 0;
-  padding-bottom: var(--third-scene-card-pad-bottom);
-  border-radius: 20px 20px 0 0;
+  border-radius: 30px;
   overflow: hidden;
   isolation: isolate;
   box-shadow:
-    0 20px 56px rgba(0, 0, 0, 0.12),
-    0 0 0 1px rgba(255, 255, 255, 0.12);
+    0 26px 72px rgba(0, 0, 0, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 @media (max-width: 900px) {
   .third-scene-card {
-    --third-scene-card-pad-bottom: clamp(10vh, 12vw, 18vh);
+    height: min(58vh, 520px);
   }
 }
 
 .third-scene-card-glass {
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-  backdrop-filter: blur(52px) saturate(1.52) brightness(1.05);
-  -webkit-backdrop-filter: blur(52px) saturate(1.52) brightness(1.05);
-  border: 1.5px solid rgba(255, 255, 255, 0.62);
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.82),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    inset 0 -28px 48px rgba(0, 0, 0, 0.05);
+  /* "작은 박스" 스타일을 전체 크기로 대체 */
+  border-radius: 30px;
   pointer-events: none;
-}
-
-/* 보조 백드롭 블러 — 배경만 더 부드럽게(타이포·이미지는 상위 z-index로 선명 유지) */
-.third-scene-card-glass::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  background: rgba(255, 255, 255, 0.03);
 }
 
 /* 글래스: 살짝 린(밝은 필) + 본체 — 배경이 비치도록 투명도 유지 */
 .third-scene-card:nth-child(1) .third-scene-card-glass {
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.1) 38%, rgba(255, 255, 255, 0) 55%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(217, 217, 217, 0.22) 77.88%, rgba(72, 72, 72, 0.2) 100%),
-    rgba(255, 255, 255, 0.06);
+  /* 3페이지(이미지1) 카드가 Bloom(이미지2) 톤을 따라가도록: 더 소프트/뿌연 유리 */
+  background: rgba(217, 217, 217, 0.38);
 }
 
 .third-scene-card:nth-child(2) .third-scene-card-glass,
 .third-scene-card:nth-child(3) .third-scene-card-glass {
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.08) 40%, rgba(255, 255, 255, 0) 54%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(217, 217, 217, 0.18) 77.88%, rgba(72, 72, 72, 0.18) 100%),
-    rgba(255, 255, 255, 0.05);
+  background: rgba(217, 217, 217, 0.34);
 }
 
 /* 상단 타이틀 — 3D 이미지(scale)·글래스보다 항상 위에, 잘림/가림 방지 */
@@ -627,21 +755,19 @@ html.flowrium-cards-state-2 .third-scene-veil {
   top: clamp(16px, 4%, 32px);
   margin: 0;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  font-weight: 100;
-  font-size: clamp(1.4rem, 3.8vw, 3.35rem);
-  line-height: calc(115 / 96);
-  letter-spacing: 0;
+  /* Bloom(이미지2) 타이포 톤에 맞춤 */
+  font-weight: 400;
+  font-size: clamp(1.05rem, 2.4vw, 2.2rem);
+  line-height: 1.18;
+  letter-spacing: 0.03em;
   color: #ffffff;
-  text-shadow: 0 4px 35px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.22);
   pointer-events: none;
 }
 
 .third-scene-card-title:not(.third-scene-card-title-br) {
-  z-index: 6;
-  text-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.45),
-    0 4px 28px rgba(0, 0, 0, 0.35),
-    0 0 24px rgba(0, 0, 0, 0.2);
+  /* 이미지가 최상단이어야 함 */
+  z-index: 5;
 }
 
 .third-scene-card-title-br {
@@ -649,7 +775,7 @@ html.flowrium-cards-state-2 .third-scene-veil {
   left: auto;
   top: auto;
   right: clamp(18px, 6%, 36px);
-  bottom: calc(var(--third-scene-card-pad-bottom, 0px) + clamp(72px, 11vh, 130px));
+  bottom: clamp(92px, 18%, 150px);
   text-shadow: 0 4px 35px rgba(0, 0, 0, 0.25);
 }
 
@@ -662,23 +788,78 @@ html.flowrium-cards-state-2 .third-scene-veil {
 @keyframes third-scene-media-float {
   0%,
   100% {
-    transform: translate(-50%, -50%) translateY(0);
+    transform: translate(-50%, -50%) translateY(0) rotate(-0.35deg)
+      scale(var(--float-scale, 1));
+  }
+  25% {
+    transform: translate(-50%, -50%)
+      translateY(calc(var(--float-amp, 18px) * 0.55)) rotate(0.25deg)
+      scale(var(--float-scale, 1));
   }
   50% {
-    transform: translate(-50%, -50%) translateY(-12px);
+    transform: translate(-50%, -50%)
+      translateY(calc(var(--float-amp, 18px) * -1)) rotate(0.55deg)
+      scale(var(--float-scale, 1));
   }
+  75% {
+    transform: translate(-50%, -50%)
+      translateY(calc(var(--float-amp, 18px) * 0.45)) rotate(-0.15deg)
+      scale(var(--float-scale, 1));
+  }
+}
+
+/* 3페이지 카드가 Bloom 상세 카드 구조를 그대로 쓰도록 스코프 오버라이드 */
+.third-scene-card .bloom-detail-card-glass {
+  border-radius: 30px;
+  /* 글래스 투명도 ↑ */
+  background: rgba(217, 217, 217, 0.18);
+}
+
+.third-scene-card .bloom-detail-card-img.third-scene-bloom-card-img {
+  /* 카드 속 최상단 레이어: 이미지 */
+  z-index: 8;
+  left: 50%;
+  top: 54%;
+  width: min(86%, 320px);
+  --float-amp: 28px;
+  --float-scale: 1;
+  transform-origin: 50% 50%;
+}
+
+.third-scene-card:nth-child(1) .bloom-detail-card-img.third-scene-bloom-card-img {
+  width: min(92%, 360px);
+  top: 54%;
+  --float-scale: 1.7;
+  transform-origin: 50% 68%;
+}
+
+.third-scene-card:nth-child(2) .bloom-detail-card-img.third-scene-bloom-card-img {
+  width: min(90%, 340px);
+  /* PRISM: 내부 이미지 위로 */
+  top: 49%;
+}
+
+.third-scene-card:nth-child(3) .bloom-detail-card-img.third-scene-bloom-card-img {
+  width: min(90%, 352px);
+  /* CORE: 내부 이미지 아래로 */
+  top: 56%;
+  --float-scale: 1.7;
+  transform-origin: 50% 68%;
 }
 
 /* 이미지: 본문 높이 기준으로 약간 아래로 치우쳐 상단 타이틀 영역 비움(지향 레이아웃) */
 .third-scene-card-media {
   position: absolute;
-  z-index: 1;
+  /* PNG가 타이포(카피/하단 라벨) 위에서 부유하도록 */
+  z-index: 6;
   left: 50%;
   top: calc((100% - var(--third-scene-card-pad-bottom, 0px)) / 2 + min(5.5%, 26px));
   width: min(88%, 318px);
   border-radius: 0;
   overflow: visible;
-  animation: third-scene-media-float 4.2s ease-in-out infinite;
+  --float-amp: 28px;
+  animation: third-scene-media-float 4.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  will-change: transform;
 }
 
 .third-scene-card:nth-child(1) .third-scene-card-media {
@@ -706,8 +887,8 @@ html.flowrium-cards-state-2 .third-scene-veil {
 
 @media (prefers-reduced-motion: reduce) {
   .third-scene-card-media {
-    animation: none;
-    transform: translate(-50%, -50%);
+    --float-amp: 8px;
+    animation-duration: 6.8s;
   }
 }
 
@@ -733,7 +914,7 @@ html.flowrium-cards-state-2 .third-scene-veil {
   z-index: 5;
   left: clamp(18px, 6%, 32px);
   right: clamp(18px, 6%, 32px);
-  bottom: calc(var(--third-scene-card-pad-bottom, 0px) + clamp(14px, 4.5%, 28px));
+  bottom: clamp(14px, 4.5%, 28px);
   pointer-events: none;
 }
 
@@ -764,6 +945,15 @@ html.flowrium-third-atmosphere.hero-revealed .bg-flower .bg-dither.bg-dither-vie
 
 html.flowrium-third-atmosphere.hero-revealed .bg-flower .bg-halftone-coarse.bg-dither-viewport {
   opacity: 0.64 !important;
+}
+
+/* 지향(1번): 카드가 올라오면 디더/할프톤은 훨씬 약하게 */
+html.flowrium-cards-state-2.flowrium-third-atmosphere.hero-revealed .bg-flower .bg-dither.bg-dither-viewport {
+  opacity: 0.16 !important;
+}
+
+html.flowrium-cards-state-2.flowrium-third-atmosphere.hero-revealed .bg-flower .bg-halftone-coarse.bg-dither-viewport {
+  opacity: 0.22 !important;
 }
 
 /* 두 번째 화면 구간: 백그라운드 디더·할프톤 살짝 강조 + 블러 플레이트에 가벼운 추가 블러 */
@@ -863,6 +1053,8 @@ html.hero-revealed .bg-flower .bg-glass-field {
 
 /* 인트로: 블러·오퍼시티만 (메탈릭은 reveal 후) */
 .hero-intro-title {
+  /* 요청: 대왕 글씨 제거 */
+  display: none !important;
   position: fixed;
   left: 50%;
   top: 50%;
@@ -927,7 +1119,11 @@ html.hero-revealed .flowrium-wordmark {
   height: min(555px, 78vw);
   left: 50%;
   top: 50%;
-  transform: translate(-50%, calc(-50% + var(--flowrium-wordmark-shift-y, 0px)));
+  transform-origin: 50% 50%;
+  transform: translate(-50%, -50%)
+    translateY(var(--flowrium-wordmark-shift-y, 0px))
+    scale(var(--flowrium-wordmark-scale, 1));
+  will-change: transform;
   z-index: 1;
   opacity: 0;
 }
@@ -961,8 +1157,8 @@ html.hero-revealed .flowrium-wordmark {
   pointer-events: none;
   transition: opacity 0.45s ease-out;
   text-shadow:
-    0 0 12px rgba(255, 255, 255, 0.35),
-    0 2px 20px rgba(0, 0, 0, 0.3);
+    0 0 8px rgba(255, 255, 255, 0.26),
+    0 2px 14px rgba(0, 0, 0, 0.22);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1028,6 +1224,16 @@ html.flowrium-bg-no-lens.hero-revealed .bg-flower-video-sharp {
     mask 0.55s ease,
     -webkit-mask 0.55s ease,
     filter 0.45s ease;
+}
+
+/* 3페이지(카드 구간): 배경은 살짝 블러 — 카드가 더 또렷하게 떠 보이게 */
+html.flowrium-bg-no-lens.flowrium-third-atmosphere.hero-revealed .bg-flower-video-sharp-third {
+  filter: blur(calc(3px + var(--flowrium-cards-op, 0) * 4px)) contrast(1.03)
+    brightness(1.05);
+  -webkit-filter: blur(calc(3px + var(--flowrium-cards-op, 0) * 4px))
+    contrast(1.03) brightness(1.05);
+  transition: filter 0.55s ease;
+  will-change: filter;
 }
 
 html.flowrium-bg-no-lens.hero-revealed .bg-dither.bg-dither-masked,
@@ -1131,11 +1337,32 @@ html.flowrium-bg-no-lens .second-scene-label {
 .third-scene-card--bloom {
   pointer-events: auto;
   cursor: pointer;
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease,
+    filter 0.22s ease;
+  will-change: transform;
+}
+
+.third-scene-card--bloom:hover {
+  transform: translateY(-8px);
+  box-shadow:
+    0 28px 72px rgba(0, 0, 0, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.third-scene-card--bloom:hover .bloom-detail-card-glass::before,
+.third-scene-card--bloom:hover .third-scene-card-glass::before {
+  opacity: 0.95;
 }
 
 .third-scene-card--bloom:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.92);
   outline-offset: 4px;
+}
+
+.third-scene-card--bloom:active {
+  transform: translateY(-4px) scale(0.995);
 }
 
 /* BLOOM → Figma 797:735 전환: 하단에서 올라온 뒤 다시 내려가는 글래스 카드 3장 */
@@ -1147,24 +1374,41 @@ html.flowrium-bg-no-lens .second-scene-label {
   overflow: hidden;
 }
 
+.bloom-glass-transition-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 38%;
+  filter: blur(10px) brightness(1.03);
+  transform: scale(1.03);
+  opacity: 0;
+  animation: bloomTransBg 0.7s ease-out forwards;
+}
+
+@keyframes bloomTransBg {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 전환 중: 기존 3장 카드(3rd scene) 페이드 아웃 → 아래 카드가 올라오는 경험 연결 */
+html.flowrium-bloom-transition .third-scene-overlay {
+  opacity: 0 !important;
+  transition: opacity 0.35s ease;
+}
+
 .bloom-glass-transition-card {
   position: absolute;
   bottom: 6%;
   width: min(28vw, 200px);
   height: min(58vh, 520px);
   border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  background: linear-gradient(
-    168deg,
-    rgba(255, 255, 255, 0.38) 0%,
-    rgba(217, 217, 217, 0.24) 42%,
-    rgba(100, 100, 100, 0.2) 100%
-  );
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  box-shadow:
-    0 24px 56px rgba(0, 0, 0, 0.26),
-    inset 0 1px 0 rgba(255, 255, 255, 0.52);
+  /* 글래스는 전역 토큰 사용 */
   transform: translateY(calc(100vh + 120px));
   opacity: 0;
   will-change: transform, opacity;
@@ -1246,9 +1490,8 @@ html.flowrium-bg-no-lens .second-scene-label {
   inset: 0;
   z-index: 55;
   background: #e4e4e4;
-  overflow: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  /* 이 페이지는 스크롤 금지 */
+  overflow: hidden;
   pointer-events: auto;
   min-height: 100dvh;
 }
@@ -1261,7 +1504,8 @@ html.flowrium-bg-no-lens .second-scene-label {
   pointer-events: none;
 }
 
-.bloom-detail-hero-img {
+.bloom-detail-hero-img,
+.bloom-detail-hero-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1315,31 +1559,33 @@ html.flowrium-bg-no-lens .second-scene-label {
 }
 
 .bloom-detail-cards {
-  position: relative;
+  position: absolute;
   z-index: 2;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(12px, 2.2vw, 26px);
-  padding: clamp(38vh, 46vh, 50vh) clamp(16px, 3vw, 28px)
-    max(28px, env(safe-area-inset-bottom, 0px));
-  max-width: 1080px;
-  margin: 0 auto;
+  gap: clamp(10px, 1.7vw, 18px);
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom, 0px), 6vh);
+  transform: translateX(-50%);
+  width: min(1020px, 96vw);
+  padding: 0 clamp(16px, 3vw, 28px);
   box-sizing: border-box;
 }
 
 @media (max-width: 840px) {
   .bloom-detail-cards {
-    grid-template-columns: 1fr;
-    padding-top: clamp(32vh, 40vh, 44vh);
-    max-width: 440px;
+    width: min(980px, 96vw);
+    gap: clamp(10px, 2.2vw, 16px);
+    bottom: max(18px, env(safe-area-inset-bottom, 0px), 5vh);
   }
 }
 
 .bloom-detail-card {
   position: relative;
-  min-height: clamp(260px, 36vw, 320px);
+  /* 상하 비율을 조금 좁게(더 낮은 카드) */
+  height: clamp(220px, 19vw, 300px);
   border-radius: 30px;
-  padding: clamp(0.85rem, 1.8vw, 1.15rem);
+  padding: clamp(0.9rem, 2vw, 1.2rem);
   overflow: hidden;
 }
 
@@ -1347,57 +1593,81 @@ html.flowrium-bg-no-lens .second-scene-label {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: rgba(217, 217, 217, 0.42);
-  backdrop-filter: blur(16px) saturate(1.12);
-  -webkit-backdrop-filter: blur(16px) saturate(1.12);
-  border: 1px solid rgba(255, 255, 255, 0.38);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  /* Bloom(이미지2) 원래 톤 */
+  background: rgba(217, 217, 217, 0.22);
 }
 
 .bloom-detail-card:nth-child(1) .bloom-detail-card-glass {
-  background: rgba(217, 217, 217, 0.48);
+  background: rgba(217, 217, 217, 0.26);
 }
 
 .bloom-detail-card-label {
   position: relative;
-  z-index: 2;
-  margin: 0 0 clamp(0.85rem, 1.8vw, 1.15rem);
+  /* 이미지가 최상단이어야 함 */
+  z-index: 3;
+  margin: 0;
   font-family: 'Pretendard',
     -apple-system,
     BlinkMacSystemFont,
     system-ui,
     sans-serif;
   font-weight: 400;
-  font-size: clamp(1.1rem, 2.6vw, 2.35rem);
-  line-height: 1.18;
+  font-size: clamp(1.45rem, 3.8vw, 2.95rem);
+  line-height: 1.05;
   letter-spacing: 0.03em;
   color: rgba(255, 255, 255, 0.98);
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.22);
 }
 
-.bloom-detail-card-media {
-  position: relative;
-  z-index: 1;
-  margin-top: 0.25rem;
-  border-radius: 12px;
-  overflow: hidden;
-  aspect-ratio: 1 / 1.05;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.38);
-}
-
-.bloom-detail-card:nth-child(2) .bloom-detail-card-media {
-  box-shadow: 0 4px 7.2px rgba(0, 0, 0, 0.48);
-}
-
-.bloom-detail-card:nth-child(3) .bloom-detail-card-media {
-  box-shadow: 0 4px 12.3px rgba(0, 0, 0, 0.44);
-}
-
 .bloom-detail-card-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  position: absolute;
+  /* 카드 속 최상단 레이어: 이미지 */
+  z-index: 6;
+  left: 50%;
+  top: 56%;
+  width: min(48%, 190px);
+  height: auto;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
   object-position: center center;
   display: block;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.28));
+  --float-amp: 14px;
+  --float-scale: 2;
+  animation: third-scene-media-float 5.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  will-change: transform;
+}
+
+.bloom-detail-card:nth-child(2) .bloom-detail-card-img {
+  width: min(50%, 198px);
+  top: 58%;
+  animation-duration: 4.4s;
+  animation-delay: -1.2s;
+  filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.26));
+}
+
+.bloom-detail-card:nth-child(3) .bloom-detail-card-img {
+  width: min(50%, 198px);
+  top: 58%;
+  animation-duration: 5.6s;
+  animation-delay: -2.1s;
+  filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.28));
+}
+
+.bloom-detail-card-desc {
+  position: absolute;
+  z-index: 3;
+  left: clamp(16px, 5%, 26px);
+  right: clamp(16px, 5%, 26px);
+  bottom: clamp(14px, 4.6%, 24px);
+  margin: 0;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 300;
+  font-size: clamp(0.78rem, 1.15vw, 0.98rem);
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.24);
+  text-align: right;
 }
 
